@@ -9,7 +9,7 @@ services:
         volumes:
             - ./caddy_data:/data
             - ./caddy_config:/config
-            - ./app:/app
+            - app_data:/app
         environment:
             - suite_db_host=mariadb
             - suite_db_user=usersuitecrm
@@ -35,3 +35,5 @@ services:
         volumes:
             - ./config_db:/config
         restart: unless-stopped
+volumes:    
+  app_data:
