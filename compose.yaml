@@ -1,0 +1,37 @@
+services:
+    php:
+        image: docker.io/pi2me/suitecrm-frankenphp
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+            - "443:443/udp" # HTTP/3
+        volumes:
+            - ./caddy_data:/data
+            - ./caddy_config:/config
+            - ./app:/app
+        environment:
+            - suite_db_host=mariadb
+            - suite_db_user=usersuitecrm
+            - suite_db_password=21dfa48439
+            - suite_db=suitecrm
+            - suite_password=password
+            - suite_user=cbt
+            - SERVER_NAME=localhost
+        depends_on:
+            mariadb:
+                condition: service_healthy
+    mariadb:
+        image: lscr.io/linuxserver/mariadb:latest
+        container_name: mariadb
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - MYSQL_ROOT_PASSWORD=567cc95e62e7453cb049
+            - TZ=America/Los_Angeles
+            - MYSQL_DATABASE=suitecrm
+            - MYSQL_USER=usersuitecrm
+            - MYSQL_PASSWORD=21dfa48439
+        volumes:
+            - ./config_db:/config
+        restart: unless-stopped
