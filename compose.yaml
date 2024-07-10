@@ -22,6 +22,12 @@ services:
             mariadb:
                 condition: service_healthy
     mariadb:
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", '-p$$MYSQL_ROOT_PASSWORD']
+            start_period: 10s
+            interval: 10s
+            timeout: 5s
+            retries: 3
         image: lscr.io/linuxserver/mariadb:latest
         container_name: mariadb
         environment:
