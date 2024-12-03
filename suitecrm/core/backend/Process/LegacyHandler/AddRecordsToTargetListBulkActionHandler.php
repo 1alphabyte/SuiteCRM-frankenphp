@@ -1,7 +1,7 @@
 <?php
 /**
  * SuiteCRM is a customer relationship management program developed by SalesAgility Ltd.
- * Copyright (C) 2021 SalesAgility Ltd.
+ * Copyright (C) 2024 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -28,7 +28,7 @@
 namespace App\Process\LegacyHandler;
 
 use AddRecordsToTargetListService;
-use ApiPlatform\Core\Exception\InvalidArgumentException;
+use ApiPlatform\Exception\InvalidArgumentException;
 use App\Engine\LegacyHandler\LegacyHandler;
 use App\Engine\LegacyHandler\LegacyScopeState;
 use App\Module\Service\ModuleNameMapperInterface;
@@ -36,7 +36,7 @@ use App\Process\Entity\Process;
 use App\Process\Service\ProcessHandlerInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class AddRecordsToTargetListBulkActionHandler extends LegacyHandler implements ProcessHandlerInterface, LoggerAwareInterface
 {
@@ -60,7 +60,7 @@ class AddRecordsToTargetListBulkActionHandler extends LegacyHandler implements P
      * @param string $legacySessionName
      * @param string $defaultSessionName
      * @param LegacyScopeState $legacyScopeState
-     * @param SessionInterface $session
+     * @param RequestStack $session
      * @param ModuleNameMapperInterface $moduleNameMapper
      */
     public function __construct(
@@ -69,7 +69,7 @@ class AddRecordsToTargetListBulkActionHandler extends LegacyHandler implements P
         string $legacySessionName,
         string $defaultSessionName,
         LegacyScopeState $legacyScopeState,
-        SessionInterface $session,
+        RequestStack $session,
         ModuleNameMapperInterface $moduleNameMapper
     )
     {

@@ -6,9 +6,15 @@ parameters:
   legacy.dir: '%kernel.project_dir%/public/legacy'
   packages.upgrade.dir: '%kernel.project_dir%/tmp/package/upgrade'
   legacy.path: '/legacy'
-  legacy.session_name: 'LEGACYSESSID'
-  default_session_name: 'PHPSESSID'
+  legacy.session_name: 'SCRMSESSID'
+  default_session_name: 'SCRMSESSID'
   auth_type: '%env(AUTH_TYPE)%'
+  log.dir: '%kernel.logs_dir%'
+  log.main.default: '%kernel.environment%.log'
+  log.security.default: '%kernel.environment%.security.log'
+  log.deprecation.default: '%kernel.environment%.deprecation.log'
+  site.url: '%env(SITE_URL)%'
+  saml.autocreate.attributes_map: '%env(json:SAML_AUTOCREATE_ATTRIBUTES_MAP)%'
 
 services:
   Symfony\Component\Ldap\Ldap:
@@ -17,16 +23,11 @@ services:
       - ldap
   Symfony\Component\Ldap\Adapter\ExtLdap\Adapter:
     arguments:
-      - host: '%env(LDAP_HOST)%'
-        port: '%env(LDAP_PORT)%'
-        encryption: '%env(LDAP_ENCRYPTION)%'
-        options:
-          protocol_version: '%env(LDAP_PROTOCOL_VERSION)%'
-          referrals: '%env(LDAP_REFERRALS)%'
-
+      - '%ldap.options%'
 
 imports:
   - { resource: services/**/*.yaml }
+  - { resource: services/**/*.php }
   - { resource: ../extensions/*/config/services/*.yaml }
   - { resource: ../extensions/*/config/services/*.php }
   - { resource: ../extensions/*/config/services/**/*.yaml }

@@ -28,43 +28,51 @@
 
 namespace App\UserPreferences\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
+use App\UserPreferences\DataProvider\UserPreferenceStateProvider;
 
-/**
- * @ApiResource(
- *     attributes={"security"="is_granted('ROLE_USER')"},
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *          "get"
- *     },
- *     graphql={
- *         "item_query",
- *         "collection_query"
- *     },
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(security: "is_granted('ROLE_USER')", provider: UserPreferenceStateProvider::class),
+        new GetCollection(security: "is_granted('ROLE_USER')", provider: UserPreferenceStateProvider::class)
+    ],
+    security: "is_granted('ROLE_USER')",
+    graphQlOperations: [
+        new Query(security: "is_granted('ROLE_USER')", provider: UserPreferenceStateProvider::class),
+        new QueryCollection(security: "is_granted('ROLE_USER')", provider: UserPreferenceStateProvider::class)
+    ]
+)]
 class UserPreference
 {
-    /**
-     * @ApiProperty(identifier=true)
-     * @var string|null
-     */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The preference id',
+        ]
+    )]
+    protected ?string $id;
 
-    /**
-     * @ApiProperty
-     * @var string|null
-     */
-    protected $value;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The preference value',
+        ]
+    )]
+    protected ?string $value;
 
-    /**
-     * @ApiProperty
-     * @var array
-     */
-    protected $items = [];
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The preference items',
+        ]
+    )]
+    protected array $items = [];
 
     /**
      * Get Id
@@ -72,7 +80,7 @@ class UserPreference
      */
     public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
@@ -93,7 +101,7 @@ class UserPreference
      */
     public function getValue(): ?string
     {
-        return $this->value;
+        return $this->value ?? null;
     }
 
     /**
@@ -114,7 +122,7 @@ class UserPreference
      */
     public function getItems(): array
     {
-        return $this->items;
+        return $this->items ?? [];
     }
 
     /**

@@ -30,27 +30,28 @@ use Symfony\Component\Lock\SharedLockStoreInterface;
  */
 class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
 {
-    private $lockPath;
+    private ?string $lockPath;
 
     /**
      * @param string|null $lockPath the directory to store the lock, defaults to the system's temporary directory
      *
      * @throws LockStorageException If the lock directory doesn’t exist or is not writable
      */
-    public function __construct(string $lockPath = null)
+    public function __construct(?string $lockPath = null)
     {
-        if (null === $lockPath) {
-            $lockPath = sys_get_temp_dir();
-        }
-        if (!is_dir($lockPath) || !is_writable($lockPath)) {
-            throw new InvalidArgumentException(sprintf('The directory "%s" is not writable.', $lockPath));
+        if (!is_dir($lockPath ??= sys_get_temp_dir())) {
+            if (false === @mkdir($lockPath, 0777, true) && !is_dir($lockPath)) {
+                throw new InvalidArgumentException(sprintf('The FlockStore directory "%s" does not exists and cannot be created.', $lockPath));
+            }
+        } elseif (!is_writable($lockPath)) {
+            throw new InvalidArgumentException(sprintf('The FlockStore directory "%s" is not writable.', $lockPath));
         }
 
         $this->lockPath = $lockPath;
     }
 
     /**
-     * {@inheritdoc}
+     * @return void
      */
     public function save(Key $key)
     {
@@ -58,7 +59,7 @@ class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return void
      */
     public function saveRead(Key $key)
     {
@@ -66,7 +67,7 @@ class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return void
      */
     public function waitAndSave(Key $key)
     {
@@ -74,14 +75,14 @@ class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return void
      */
     public function waitAndSaveRead(Key $key)
     {
         $this->lock($key, true, true);
     }
 
-    private function lock(Key $key, bool $read, bool $blocking)
+    private function lock(Key $key, bool $read, bool $blocking): void
     {
         $handle = null;
         // The lock is maybe already acquired.
@@ -102,15 +103,18 @@ class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
 
             // Silence error reporting
             set_error_handler(function ($type, $msg) use (&$error) { $error = $msg; });
-            if (!$handle = fopen($fileName, 'r+') ?: fopen($fileName, 'r')) {
-                if ($handle = fopen($fileName, 'x')) {
-                    chmod($fileName, 0666);
-                } elseif (!$handle = fopen($fileName, 'r+') ?: fopen($fileName, 'r')) {
-                    usleep(100); // Give some time for chmod() to complete
-                    $handle = fopen($fileName, 'r+') ?: fopen($fileName, 'r');
+            try {
+                if (!$handle = fopen($fileName, 'r+') ?: fopen($fileName, 'r')) {
+                    if ($handle = fopen($fileName, 'x')) {
+                        chmod($fileName, 0666);
+                    } elseif (!$handle = fopen($fileName, 'r+') ?: fopen($fileName, 'r')) {
+                        usleep(100); // Give some time for chmod() to complete
+                        $handle = fopen($fileName, 'r+') ?: fopen($fileName, 'r');
+                    }
                 }
+            } finally {
+                restore_error_handler();
             }
-            restore_error_handler();
         }
 
         if (!$handle) {
@@ -129,7 +133,7 @@ class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return void
      */
     public function putOffExpiration(Key $key, float $ttl)
     {
@@ -137,7 +141,7 @@ class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return void
      */
     public function delete(Key $key)
     {
@@ -154,10 +158,7 @@ class FlockStore implements BlockingStoreInterface, SharedLockStoreInterface
         $key->removeState(__CLASS__);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function exists(Key $key)
+    public function exists(Key $key): bool
     {
         return $key->hasState(__CLASS__);
     }

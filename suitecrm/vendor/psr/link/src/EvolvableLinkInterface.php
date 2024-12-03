@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Psr\Link;
 
 /**
@@ -10,7 +12,7 @@ interface EvolvableLinkInterface extends LinkInterface
     /**
      * Returns an instance with the specified href.
      *
-     * @param string $href
+     * @param string|\Stringable $href
      *   The href value to include.  It must be one of:
      *     - An absolute URI, as defined by RFC 5988.
      *     - A relative URI, as defined by RFC 5988. The base of the relative link
@@ -24,7 +26,7 @@ interface EvolvableLinkInterface extends LinkInterface
      *
      * @return static
      */
-    public function withHref($href);
+    public function withHref(string|\Stringable $href): static;
 
     /**
      * Returns an instance with the specified relationship included.
@@ -36,7 +38,7 @@ interface EvolvableLinkInterface extends LinkInterface
      *   The relationship value to add.
      * @return static
      */
-    public function withRel($rel);
+    public function withRel(string $rel): static;
 
     /**
      * Returns an instance with the specified relationship excluded.
@@ -48,7 +50,7 @@ interface EvolvableLinkInterface extends LinkInterface
      *   The relationship value to exclude.
      * @return static
      */
-    public function withoutRel($rel);
+    public function withoutRel(string $rel): static;
 
     /**
      * Returns an instance with the specified attribute added.
@@ -58,12 +60,11 @@ interface EvolvableLinkInterface extends LinkInterface
      *
      * @param string $attribute
      *   The attribute to include.
-     * @param string $value
+     * @param string|\Stringable|int|float|bool|array $value
      *   The value of the attribute to set.
      * @return static
      */
-    public function withAttribute($attribute, $value);
-
+    public function withAttribute(string $attribute, string|\Stringable|int|float|bool|array $value): static;
 
     /**
      * Returns an instance with the specified attribute excluded.
@@ -75,5 +76,5 @@ interface EvolvableLinkInterface extends LinkInterface
      *   The attribute to remove.
      * @return static
      */
-    public function withoutAttribute($attribute);
+    public function withoutAttribute(string $attribute): static;
 }

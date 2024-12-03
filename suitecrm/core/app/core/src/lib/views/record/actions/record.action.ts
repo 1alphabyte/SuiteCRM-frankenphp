@@ -27,6 +27,8 @@
 import {Action, ActionData, ActionHandler, Record} from 'common';
 import {RecordViewStore} from '../store/record-view/record-view.store';
 import {ModuleNavigation} from '../../../services/navigation/module-navigation/module-navigation.service';
+import {Router} from "@angular/router";
+import {RecordPaginationService} from "../store/record-pagination/record-pagination.service";
 
 export interface RecordActionData extends ActionData {
     store: RecordViewStore;
@@ -88,6 +90,17 @@ export abstract class RecordActionHandler extends ActionHandler<RecordActionData
         }
 
         navigation.navigateBack(record, moduleName, params);
+    }
+
+    protected navigateBackToDetail(
+        navigation: ModuleNavigation,
+        router: Router,
+        recordPaginationService: RecordPaginationService,
+        id: string,
+        moduleName: string
+    ) {
+        const nextRoute = navigation.getRecordRouterLink(moduleName, id);
+        router.navigate([nextRoute], { queryParams: { offset: recordPaginationService.getOffsetFromUrl() }});
     }
 
 }

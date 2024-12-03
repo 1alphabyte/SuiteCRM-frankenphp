@@ -27,9 +27,7 @@
 import {Injectable} from '@angular/core';
 import {ValidatorInterface} from '../validator.Interface';
 import {AbstractControl} from '@angular/forms';
-import {isTrue, Record} from 'common';
-import {ViewFieldDefinition} from 'common';
-import {StandardValidationErrors, StandardValidatorFn} from 'common';
+import {Field, isTrue, Record, StandardValidationErrors, StandardValidatorFn, ViewFieldDefinition} from 'common';
 import {FormControlUtils} from '../../field/form-control.utils';
 
 export const requiredValidator = (utils: FormControlUtils): StandardValidatorFn => (
@@ -74,6 +72,39 @@ export const booleanRequiredValidator = (utils: FormControlUtils): StandardValid
     }
 );
 
+export const multienumRequiredValidator = (viewField: ViewFieldDefinition, record: Record, utils: FormControlUtils): StandardValidatorFn => (
+    (control: AbstractControl): StandardValidationErrors | null => {
+        const name = viewField.name || '';
+
+        if (!name || !record || !record.fields) {
+            return null;
+        }
+
+        const field = record?.fields[name] ?? {} as Field;
+
+        if (!field) {
+            return null;
+        }
+
+        const activeItems = field.valueList
+
+        if (activeItems && activeItems.length > 0) {
+            return null;
+        }
+
+        return {
+            required: {
+                required: true,
+                message: {
+                    labelKey: 'LBL_VALIDATION_ERROR_REQUIRED',
+                    context: {}
+                }
+            }
+        };
+    }
+);
+
+
 @Injectable({
     providedIn: 'root'
 })
@@ -87,13 +118,26 @@ export class RequiredValidator implements ValidatorInterface {
             return false;
         }
 
+        const viewFieldType = viewField?.type ?? null;
+        const fieldDefinitionType = viewField?.fieldDefinition?.type ?? null;
+
+        if (viewFieldType === 'line-items' || fieldDefinitionType === 'line-items') {
+            return false;
+        }
+
         return isTrue(viewField.fieldDefinition.required);
     }
 
-    getValidator(viewField: ViewFieldDefinition): StandardValidatorFn[] {
+    getValidator(viewField: ViewFieldDefinition, record: Record): StandardValidatorFn[] {
 
-        if(viewField.type === 'boolean'){
+        const type = viewField?.type ?? viewField?.fieldDefinition?.type ?? '';
+
+        if (type === 'boolean') {
             return [booleanRequiredValidator(this.utils)];
+        }
+
+        if (type === 'multienum') {
+            return [multienumRequiredValidator(viewField, record, this.utils)];
         }
 
         return [requiredValidator(this.utils)];

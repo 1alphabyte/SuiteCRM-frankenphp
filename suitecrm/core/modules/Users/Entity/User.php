@@ -28,360 +28,636 @@
 
 namespace App\Module\Users\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\Module\Users\Repository\UserRepository;
 use DateTime;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\EquatableInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
-/**
- * @ApiResource(
- *     attributes={"security"="is_granted('ROLE_USER')"},
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *     },
- *     graphql={
- *         "item_query",
- *     },
- * )
- * @ORM\Table(name="users", indexes={@ORM\Index(name="idx_user_name", columns={"user_name", "is_group", "status", "last_name", "first_name", "id"}, options={"lengths": {null, null, null, 30, 30}})}))
- * @ORM\Entity(repositoryClass="App\Module\Users\Repository\UserRepository")
- */
-class User implements UserInterface, EquatableInterface
+#[ApiResource(
+    operations: [
+        new Get(security: "is_granted('ROLE_USER')"),
+    ],
+    security: "is_granted('ROLE_USER')",
+    graphQlOperations: [
+        new Query(security: "is_granted('ROLE_USER')"),
+    ]
+)]
+#[ORM\Entity(repositoryClass: UserRepository::class)]
+#[ORM\Table(name: "users")]
+#[ORM\Index(
+    columns: ["user_name", "is_group", "status", "last_name", "first_name", "id"],
+    name: "idx_user_name",
+    options: ['lengths' => [null, null, null, 30, 30]]
+)]
+class User implements UserInterface, EquatableInterface, PasswordAuthenticatedUserInterface
 {
-    /**
-     * @var string
-     *
-     *
-     * @ApiProperty(identifier=true)
-     * @ORM\Column(name="id", type="string", length=36, nullable=false, options={"fixed"=true, "collation":"utf8_general_ci"})
-     * @ORM\Id
-     */
-    private $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The user id'
+        ]
+    )]
+    #[ORM\Column(
+        name: "id",
+        type: "string",
+        length: 36,
+        nullable: false,
+        options: ["fixed" => true, "collation" => "utf8_general_ci"]
+    )]
+    #[ORM\Id()]
+    private string $id;
 
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="user_name", type="string", length=60, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $user_name;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The username'
+        ]
+    )]
+    #[ORM\Column(
+        name: "user_name",
+        type: "string",
+        length: 60,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $user_name;
 
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="user_hash", type="string", length=255, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $userHash;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The user hash'
+        ]
+    )]
+    #[ORM\Column(
+        name: "user_hash",
+        type: "string",
+        length: 255,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $userHash;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The system generated password hash'
+        ]
+    )]
+    #[ORM\Column(
+        name: "system_generated_password",
+        type: "boolean",
+        nullable: true
+    )]
+    private ?bool $systemGeneratedPassword;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The date when password last changed'
+        ]
+    )]
+    #[ORM\Column(
+        name: "pwd_last_changed",
+        type: "datetime",
+        nullable: true
+    )]
+    private ?DateTime $pwdLastChanged;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The authenticate id'
+        ]
+    )]
+    #[ORM\Column(
+        name: "authenticate_id",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $authenticateId;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'boolean',
+            'description' => 'sugar login'
+        ]
+    )]
+    #[ORM\Column(
+        name: "sugar_login",
+        type: "boolean",
+        nullable: true,
+        options: ["default" => "1"]
+    )]
+    private ?bool $sugarLogin = true;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The first name'
+        ]
+    )]
+    #[ORM\Column(
+        name: "first_name",
+        type: "string",
+        length: 255,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $firstName;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The last name'
+        ]
+    )]
+    #[ORM\Column(
+        name: "last_name",
+        type: "string",
+        length: 255,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $lastName;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'Is admin'
+        ]
+    )]
+    #[ORM\Column(
+        name: "is_admin",
+        type: "boolean",
+        nullable: true,
+        options: ["default" => "0"]
+    )]
+    private string|bool|null $isAdmin = '0';
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'external auth only'
+        ]
+    )]
+    #[ORM\Column(
+        name: "external_auth_only",
+        type: "boolean",
+        nullable: true,
+        options: ["default" => "0"]
+    )]
+    private string|bool|null $externalAuthOnly = '0';
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'boolean',
+            'description' => 'receive notifications'
+        ]
+    )]
+    #[ORM\Column(
+        name: "receive_notifications",
+        type: "boolean",
+        nullable: true,
+        options: ["default" => "1"]
+    )]
+    private ?bool $receiveNotifications = true;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'description'
+        ]
+    )]
+    #[ORM\Column(
+        name: "description",
+        type: "text",
+        length: 65535,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $description;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'date entered'
+        ]
+    )]
+    #[ORM\Column(
+        name: "date_entered",
+        type: "datetime",
+        nullable: true
+    )]
+    private ?DateTime $dateEntered;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'date modified'
+        ]
+    )]
+    #[ORM\Column(
+        name: "date_modified",
+        type: "datetime",
+        nullable: true
+    )]
+    private ?DateTime $dateModified;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'modified by user id'
+        ]
+    )]
+    #[ORM\Column(
+        name: "modified_user_id",
+        type: "string",
+        length: 36,
+        nullable: true,
+        options: ["fixed" => true, "collation" => "utf8_general_ci"]
+    )]
+    private ?string $modifiedUserId;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'created by user id'
+        ]
+    )]
+    #[ORM\Column(
+        name: "created_by",
+        type: "string",
+        length: 36,
+        nullable: true,
+        options: ["fixed" => true, "collation" => "utf8_general_ci"]
+    )]
+    private ?string $createdBy;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'title'
+        ]
+    )]
+    #[ORM\Column(
+        name: "title",
+        type: "string",
+        length: 50,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $title;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'photo'
+        ]
+    )]
+    #[ORM\Column(
+        name: "photo",
+        type: "string",
+        length: 255,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $photo;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'department'
+        ]
+    )]
+    #[ORM\Column(
+        name: "department",
+        type: "string",
+        length: 50,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $department;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'home phone'
+        ]
+    )]
+    #[ORM\Column(
+        name: "phone_home",
+        type: "string",
+        length: 50,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $phoneHome;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'mobile phone'
+        ]
+    )]
+    #[ORM\Column(
+        name: "phone_mobile",
+        type: "string",
+        length: 50,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $phoneMobile;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'work phone'
+        ]
+    )]
+    #[ORM\Column(
+        name: "phone_work",
+        type: "string",
+        length: 50,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $phoneWork;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'other phone'
+        ]
+    )]
+    #[ORM\Column(
+        name: "phone_other",
+        type: "string",
+        length: 50,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $phoneOther;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'fax phone'
+        ]
+    )]
+    #[ORM\Column(
+        name: "phone_fax",
+        type: "string",
+        length: 50,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $phoneFax;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'status'
+        ]
+    )]
+    #[ORM\Column(
+        name: "status",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $status;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'address street'
+        ]
+    )]
+    #[ORM\Column(
+        name: "address_street",
+        type: "string",
+        length: 150,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $addressStreet;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'address city'
+        ]
+    )]
+    #[ORM\Column(
+        name: "address_city",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $addressCity;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'address state'
+        ]
+    )]
+    #[ORM\Column(
+        name: "address_state",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $addressState;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'address country'
+        ]
+    )]
+    #[ORM\Column(
+        name: "address_country",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $addressCountry;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'address postal code'
+        ]
+    )]
+    #[ORM\Column(
+        name: "address_postalcode",
+        type: "string",
+        length: 20,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $addressPostalcode;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'deleted'
+        ]
+    )]
+    #[ORM\Column(
+        name: "deleted",
+        type: "boolean",
+        nullable: true
+    )]
+    private ?bool $deleted;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'portal only'
+        ]
+    )]
+    #[ORM\Column(
+        name: "portal_only",
+        type: "boolean",
+        nullable: true,
+        options: ["default" => "0"]
+    )]
+    private string|bool|null $portalOnly = '0';
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'show on employees'
+        ]
+    )]
+    #[ORM\Column(
+        name: "show_on_employees",
+        type: "boolean",
+        nullable: true,
+        options: ["default" => "1"]
+    )]
+    private ?bool $showOnEmployees = true;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'employee status'
+        ]
+    )]
+    #[ORM\Column(
+        name: "employee_status",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $employeeStatus;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'messenger id'
+        ]
+    )]
+    #[ORM\Column(
+        name: "messenger_id",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $messengerId;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'messenger type'
+        ]
+    )]
+    #[ORM\Column(
+        name: "messenger_type",
+        type: "string",
+        length: 100,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $messengerType;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'reports to id'
+        ]
+    )]
+    #[ORM\Column(
+        name: "reports_to_id",
+        type: "string",
+        length: 36,
+        nullable: true,
+        options: ["fixed" => true, "collation" => "utf8_general_ci"]
+    )]
+    private ?string $reportsToId;
 
     /**
      * @var bool|null
      *
-     * @ApiProperty
-     * @ORM\Column(name="system_generated_password", type="boolean", nullable=true)
-     */
-    private $systemGeneratedPassword;
-
-    /**
-     * @var DateTime|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="pwd_last_changed", type="datetime", nullable=true)
-     */
-    private $pwdLastChanged;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="authenticate_id", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $authenticateId;
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="sugar_login", type="boolean", nullable=true, options={"default"="1"})
-     */
-    private $sugarLogin = true;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="first_name", type="string", length=255, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $firstName;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="last_name", type="string", length=255, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $lastName;
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="is_admin", type="boolean", nullable=true, options={"default"="0"})
-     */
-    private $isAdmin = '0';
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="external_auth_only", type="boolean", nullable=true, options={"default"="0"})
-     */
-    private $externalAuthOnly = '0';
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="receive_notifications", type="boolean", nullable=true, options={"default"="1"})
-     */
-    private $receiveNotifications = true;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="description", type="text", length=65535, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $description;
-
-    /**
-     * @var DateTime|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="date_entered", type="datetime", nullable=true)
-     */
-    private $dateEntered;
-
-    /**
-     * @var DateTime|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="date_modified", type="datetime", nullable=true)
-     */
-    private $dateModified;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="modified_user_id", type="string", length=36, nullable=true, options={"fixed"=true, "collation":"utf8_general_ci"})
-     */
-    private $modifiedUserId;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="created_by", type="string", length=36, nullable=true, options={"fixed"=true, "collation":"utf8_general_ci"})
-     */
-    private $createdBy;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="title", type="string", length=50, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $title;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="photo", type="string", length=255, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $photo;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="department", type="string", length=50, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $department;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="phone_home", type="string", length=50, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $phoneHome;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="phone_mobile", type="string", length=50, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $phoneMobile;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="phone_work", type="string", length=50, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $phoneWork;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="phone_other", type="string", length=50, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $phoneOther;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="phone_fax", type="string", length=50, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $phoneFax;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="status", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $status;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="address_street", type="string", length=150, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $addressStreet;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="address_city", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $addressCity;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="address_state", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $addressState;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="address_country", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $addressCountry;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="address_postalcode", type="string", length=20, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $addressPostalcode;
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="deleted", type="boolean", nullable=true)
-     */
-    private $deleted;
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="portal_only", type="boolean", nullable=true, options={"default"="0"})
-     */
-    private $portalOnly = '0';
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="show_on_employees", type="boolean", nullable=true, options={"default"="1"})
-     */
-    private $showOnEmployees = true;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="employee_status", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $employeeStatus;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="messenger_id", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $messengerId;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="messenger_type", type="string", length=100, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $messengerType;
-
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="reports_to_id", type="string", length=36, nullable=true, options={"fixed"=true, "collation":"utf8_general_ci"})
-     */
-    private $reportsToId;
-
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
      * @ORM\Column(name="is_group", type="boolean", nullable=true)
      */
-    private $isGroup;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'is group'
+        ]
+    )]
+    #[ORM\Column(
+        name: "is_group",
+        type: "boolean",
+        nullable: true
+    )]
+    private ?bool $isGroup;
 
-    /**
-     * @var bool|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="factor_auth", type="boolean", nullable=true)
-     */
-    private $factorAuth;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'factor auth'
+        ]
+    )]
+    #[ORM\Column(
+        name: "factor_auth",
+        type: "boolean",
+        nullable: true
+    )]
+    private ?bool $factorAuth;
 
-    /**
-     * @var string|null
-     *
-     * @ApiProperty
-     * @ORM\Column(name="factor_auth_interface", type="string", length=255, nullable=true, options={"collation":"utf8_general_ci"})
-     */
-    private $factorAuthInterface;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'factor auth interface',
+        ]
+    )]
+    #[ORM\Column(
+        name: "factor_auth_interface",
+        type: "string",
+        length: 255,
+        nullable: true,
+        options: ["collation" => "utf8_general_ci"]
+    )]
+    private ?string $factorAuthInterface;
 
     /**
      * @see UserInterface
@@ -394,11 +670,11 @@ class User implements UserInterface, EquatableInterface
     }
 
     /**
-     * @return string|int
+     * @return string|null
      */
     public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
@@ -411,7 +687,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getSystemGeneratedPassword(): ?bool
     {
-        return $this->systemGeneratedPassword;
+        return $this->systemGeneratedPassword ?? null;
     }
 
     public function setSystemGeneratedPassword(?bool $systemGeneratedPassword): self
@@ -423,7 +699,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPwdLastChanged(): ?DateTimeInterface
     {
-        return $this->pwdLastChanged;
+        return $this->pwdLastChanged ?? null;
     }
 
     public function setPwdLastChanged(?DateTimeInterface $pwdLastChanged): self
@@ -435,7 +711,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getAuthenticateId(): ?string
     {
-        return $this->authenticateId;
+        return $this->authenticateId ?? null;
     }
 
     public function setAuthenticateId(?string $authenticateId): self
@@ -447,7 +723,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getSugarLogin(): ?bool
     {
-        return $this->sugarLogin;
+        return $this->sugarLogin ?? null;
     }
 
     public function setSugarLogin(?bool $sugarLogin): self
@@ -459,7 +735,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getFirstName(): ?string
     {
-        return $this->firstName;
+        return $this->firstName ?? null;
     }
 
     public function setFirstName(?string $firstName): self
@@ -471,7 +747,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getLastName(): ?string
     {
-        return $this->lastName;
+        return $this->lastName ?? null;
     }
 
     public function setLastName(?string $lastName): self
@@ -483,7 +759,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getIsAdmin(): ?bool
     {
-        return $this->isAdmin;
+        return $this->isAdmin ?? null;
     }
 
     public function setIsAdmin(?bool $isAdmin): self
@@ -495,7 +771,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getExternalAuthOnly(): ?bool
     {
-        return $this->externalAuthOnly;
+        return $this->externalAuthOnly ?? null;
     }
 
     public function setExternalAuthOnly(?bool $externalAuthOnly): self
@@ -507,7 +783,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getReceiveNotifications(): ?bool
     {
-        return $this->receiveNotifications;
+        return $this->receiveNotifications ?? null;
     }
 
     public function setReceiveNotifications(?bool $receiveNotifications): self
@@ -519,7 +795,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getDescription(): ?string
     {
-        return $this->description;
+        return $this->description ?? null;
     }
 
     public function setDescription(?string $description): self
@@ -531,7 +807,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getDateEntered(): ?DateTimeInterface
     {
-        return $this->dateEntered;
+        return $this->dateEntered ?? null;
     }
 
     public function setDateEntered(?DateTimeInterface $dateEntered): self
@@ -543,7 +819,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getDateModified(): ?DateTimeInterface
     {
-        return $this->dateModified;
+        return $this->dateModified ?? null;
     }
 
     public function setDateModified(?DateTimeInterface $dateModified): self
@@ -555,7 +831,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getModifiedUserId(): ?string
     {
-        return $this->modifiedUserId;
+        return $this->modifiedUserId ?? null;
     }
 
     public function setModifiedUserId(?string $modifiedUserId): self
@@ -567,7 +843,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getCreatedBy(): ?string
     {
-        return $this->createdBy;
+        return $this->createdBy ?? null;
     }
 
     public function setCreatedBy(?string $createdBy): self
@@ -579,7 +855,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getTitle(): ?string
     {
-        return $this->title;
+        return $this->title ?? null;
     }
 
     public function setTitle(?string $title): self
@@ -591,7 +867,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPhoto(): ?string
     {
-        return $this->photo;
+        return $this->photo ?? null;
     }
 
     public function setPhoto(?string $photo): self
@@ -603,7 +879,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getDepartment(): ?string
     {
-        return $this->department;
+        return $this->department ?? null;
     }
 
     public function setDepartment(?string $department): self
@@ -615,7 +891,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPhoneHome(): ?string
     {
-        return $this->phoneHome;
+        return $this->phoneHome ?? null;
     }
 
     public function setPhoneHome(?string $phoneHome): self
@@ -627,7 +903,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPhoneMobile(): ?string
     {
-        return $this->phoneMobile;
+        return $this->phoneMobile ?? null;
     }
 
     public function setPhoneMobile(?string $phoneMobile): self
@@ -639,7 +915,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPhoneWork(): ?string
     {
-        return $this->phoneWork;
+        return $this->phoneWork ?? null;
     }
 
     public function setPhoneWork(?string $phoneWork): self
@@ -651,7 +927,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPhoneOther(): ?string
     {
-        return $this->phoneOther;
+        return $this->phoneOther ?? null;
     }
 
     public function setPhoneOther(?string $phoneOther): self
@@ -663,7 +939,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPhoneFax(): ?string
     {
-        return $this->phoneFax;
+        return $this->phoneFax ?? null;
     }
 
     public function setPhoneFax(?string $phoneFax): self
@@ -675,7 +951,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getStatus(): ?string
     {
-        return $this->status;
+        return $this->status ?? null;
     }
 
     public function setStatus(?string $status): self
@@ -687,7 +963,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getAddressStreet(): ?string
     {
-        return $this->addressStreet;
+        return $this->addressStreet ?? null;
     }
 
     public function setAddressStreet(?string $addressStreet): self
@@ -699,7 +975,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getAddressCity(): ?string
     {
-        return $this->addressCity;
+        return $this->addressCity ?? null;
     }
 
     public function setAddressCity(?string $addressCity): self
@@ -711,7 +987,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getAddressState(): ?string
     {
-        return $this->addressState;
+        return $this->addressState ?? null;
     }
 
     public function setAddressState(?string $addressState): self
@@ -723,7 +999,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getAddressCountry(): ?string
     {
-        return $this->addressCountry;
+        return $this->addressCountry ?? null;
     }
 
     public function setAddressCountry(?string $addressCountry): self
@@ -735,7 +1011,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getAddressPostalcode(): ?string
     {
-        return $this->addressPostalcode;
+        return $this->addressPostalcode ?? null;
     }
 
     public function setAddressPostalcode(?string $addressPostalcode): self
@@ -747,7 +1023,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getDeleted(): ?bool
     {
-        return $this->deleted;
+        return $this->deleted ?? null;
     }
 
     public function setDeleted(?bool $deleted): self
@@ -759,7 +1035,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getPortalOnly(): ?bool
     {
-        return $this->portalOnly;
+        return $this->portalOnly ?? null;
     }
 
     public function setPortalOnly(?bool $portalOnly): self
@@ -771,7 +1047,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getShowOnEmployees(): ?bool
     {
-        return $this->showOnEmployees;
+        return $this->showOnEmployees ?? null;
     }
 
     public function setShowOnEmployees(?bool $showOnEmployees): self
@@ -783,7 +1059,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getEmployeeStatus(): ?string
     {
-        return $this->employeeStatus;
+        return $this->employeeStatus ?? null;
     }
 
     public function setEmployeeStatus(?string $employeeStatus): self
@@ -795,7 +1071,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getMessengerId(): ?string
     {
-        return $this->messengerId;
+        return $this->messengerId ?? null;
     }
 
     public function setMessengerId(?string $messengerId): self
@@ -807,7 +1083,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getMessengerType(): ?string
     {
-        return $this->messengerType;
+        return $this->messengerType ?? null;
     }
 
     public function setMessengerType(?string $messengerType): self
@@ -819,7 +1095,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getReportsToId(): ?string
     {
-        return $this->reportsToId;
+        return $this->reportsToId ?? null;
     }
 
     public function setReportsToId(?string $reportsToId): self
@@ -831,7 +1107,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getIsGroup(): ?bool
     {
-        return $this->isGroup;
+        return $this->isGroup ?? null;
     }
 
     public function setIsGroup(?bool $isGroup): self
@@ -843,7 +1119,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getFactorAuth(): ?bool
     {
-        return $this->factorAuth;
+        return $this->factorAuth ?? null;
     }
 
     public function setFactorAuth(?bool $factorAuth): self
@@ -855,7 +1131,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getFactorAuthInterface(): ?string
     {
-        return $this->factorAuthInterface;
+        return $this->factorAuthInterface ?? null;
     }
 
     public function setFactorAuthInterface(?string $factorAuthInterface): self
@@ -911,7 +1187,7 @@ class User implements UserInterface, EquatableInterface
 
     public function getUserHash(): ?string
     {
-        return $this->userHash;
+        return $this->userHash ?? null;
     }
 
     public function setUserHash(?string $userHash): self
@@ -936,5 +1212,10 @@ class User implements UserInterface, EquatableInterface
         $this->user_name = $userName;
 
         return $this;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return $this->getUserName();
     }
 }

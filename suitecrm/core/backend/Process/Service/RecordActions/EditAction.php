@@ -27,7 +27,7 @@
 
 namespace App\Process\Service\RecordActions;
 
-use ApiPlatform\Core\Exception\InvalidArgumentException;
+use ApiPlatform\Exception\InvalidArgumentException;
 use App\Module\Service\ModuleNameMapperInterface;
 use App\Process\Entity\Process;
 use App\Process\Service\ProcessHandlerInterface;
@@ -150,7 +150,7 @@ class EditAction implements ProcessHandlerInterface
         $baseRecordId = $options['payload']['baseRecordId'];
 
         //linked(subpanel) module
-        $linkedModule = $options['payload']['linkField'];
+        $linkedModule = $options["payload"]["recordModule"];
         $linkedRecordId = $options['id'];
         $linkedAction = 'edit';
 

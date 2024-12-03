@@ -14,20 +14,13 @@ use Doctrine\Migrations\Version\Version;
  */
 final class MigrationPlan
 {
-    /** @var string */
-    private $direction;
-    /** @var Version */
-    private $version;
-    /** @var AbstractMigration */
-    private $migration;
-    /** @var ExecutionResult */
-    public $result;
+    public ExecutionResult|null $result = null;
 
-    public function __construct(Version $version, AbstractMigration $migration, string $direction)
-    {
-        $this->version   = $version;
-        $this->migration = $migration;
-        $this->direction = $direction;
+    public function __construct(
+        private readonly Version $version,
+        private readonly AbstractMigration $migration,
+        private readonly string $direction,
+    ) {
     }
 
     public function getVersion(): Version
@@ -35,7 +28,7 @@ final class MigrationPlan
         return $this->version;
     }
 
-    public function getResult(): ?ExecutionResult
+    public function getResult(): ExecutionResult|null
     {
         return $this->result;
     }

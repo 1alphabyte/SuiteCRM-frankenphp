@@ -28,35 +28,45 @@
 
 namespace App\Languages\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\Languages\DataProvider\ModStringsStateProvider;
 
-/**
- * @ApiResource(
- *     attributes={"security"="is_granted('ROLE_USER')"},
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *     },
- *     graphql={
- *         "item_query",
- *     },
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(uriTemplate: '/mod-strings/{id}', security: "is_granted('ROLE_USER')", provider: ModStringsStateProvider::class),
+    ],
+    security: "is_granted('ROLE_USER')",
+    graphQlOperations: [
+        new Query(security: "is_granted('ROLE_USER')", provider: ModStringsStateProvider::class)
+    ]
+)]
 class ModStrings
 {
     /**
-     * @ApiProperty(identifier=true)
      * @var string|null
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'the id',
+        ]
+    )]
+    protected ?string $id;
 
     /**
-     * @ApiProperty
      * @var array|null
      */
-    protected $items;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'items',
+        ]
+    )]
+    protected ?array $items;
 
     /**
      * Get Id
@@ -64,7 +74,7 @@ class ModStrings
      */
     public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
@@ -85,7 +95,7 @@ class ModStrings
      */
     public function getItems(): ?array
     {
-        return $this->items;
+        return $this->items ?? null;
     }
 
     /**

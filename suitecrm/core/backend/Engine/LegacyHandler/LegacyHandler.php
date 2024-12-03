@@ -30,11 +30,10 @@ namespace App\Engine\LegacyHandler;
 use App\Install\Service\InstallationUtilsTrait;
 use BeanFactory;
 use ControllerFactory;
-use RuntimeException;
 use SugarApplication;
 use SugarController;
 use SugarThemeRegistry;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use User;
 
 /**
@@ -48,6 +47,7 @@ abstract class LegacyHandler
 
     /**
      * @var string
+     *
      */
     protected $projectDir;
 
@@ -72,9 +72,9 @@ abstract class LegacyHandler
     protected $state;
 
     /**
-     * @var SessionInterface
+     * @var RequestStack
      */
-    protected $session;
+    protected $requestStack;
 
     /**
      * LegacyHandler constructor.
@@ -83,22 +83,23 @@ abstract class LegacyHandler
      * @param string $legacySessionName
      * @param string $defaultSessionName
      * @param LegacyScopeState $legacyScopeState
-     * @param SessionInterface $session
+     * @param RequestStack $requestStack
      */
     public function __construct(
-        string $projectDir,
-        string $legacyDir,
-        string $legacySessionName,
-        string $defaultSessionName,
+        string           $projectDir,
+        string           $legacyDir,
+        string           $legacySessionName,
+        string           $defaultSessionName,
         LegacyScopeState $legacyScopeState,
-        SessionInterface $session
-    ) {
+        RequestStack     $requestStack
+    )
+    {
         $this->projectDir = $projectDir;
         $this->legacyDir = $legacyDir;
         $this->legacySessionName = $legacySessionName;
         $this->defaultSessionName = $defaultSessionName;
         $this->state = $legacyScopeState;
-        $this->session = $session;
+        $this->requestStack = $requestStack;
     }
 
     /**
@@ -113,11 +114,7 @@ abstract class LegacyHandler
         // Set working directory for legacy
         chdir($this->legacyDir);
 
-        $this->startLegacySession();
-
-        if (!$this->runLegacyEntryPoint()) {
-            throw new RuntimeException(self::MSG_LEGACY_BOOTSTRAP_FAILED);
-        }
+        $this->startSession();
 
         $this->state->setActiveScope($this->getHandlerKey());
     }
@@ -252,8 +249,12 @@ abstract class LegacyHandler
     {
         /** @var User $current_user */
         $currentUser = BeanFactory::newBean('Users');
-        $currentUser = $currentUser->getSystemUser();
-        $GLOBALS['current_user'] = $currentUser;
+
+        if (!empty($currentUser)) {
+            $currentUser = $currentUser->getSystemUser();
+            $GLOBALS['current_user'] = $currentUser;
+        }
+
     }
 
     /**
@@ -268,8 +269,6 @@ abstract class LegacyHandler
         if (!empty($this->projectDir)) {
             chdir($this->projectDir);
         }
-
-        $this->startSymfonySession();
 
         $this->state->setActiveScope(null);
     }
@@ -292,40 +291,6 @@ abstract class LegacyHandler
         $controller->loadBean();
     }
 
-    protected function startSymfonySession(): void
-    {
-        if ($this->session->isStarted()) {
-            $this->session->save();
-            session_write_close();
-        }
-
-        $this->session->setName($this->defaultSessionName);
-
-        if (isset($_COOKIE[$this->defaultSessionName])) {
-            $this->session->setId($_COOKIE[$this->defaultSessionName]);
-        }
-
-        $this->session->start();
-    }
-
-    protected function startLegacySession(): void
-    {
-        if ($this->session->isStarted()) {
-            $this->session->save();
-        }
-
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            return;
-        }
-        $this->session->setName($this->legacySessionName);
-
-        if (!isset($_COOKIE[$this->legacySessionName])) {
-            $_COOKIE[$this->legacySessionName] = session_create_id();
-        }
-        $this->session->setId($_COOKIE[$this->legacySessionName]);
-        $this->session->start();
-    }
-
     /**
      * Disable legacy suite translations
      */
@@ -340,5 +305,20 @@ abstract class LegacyHandler
         $sugar_config['disable_translations'] = true;
 
         $app_strings = disable_translations($app_strings);
+    }
+
+    /**
+     * @return void
+     */
+    public function startSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        require_once 'include/MVC/SugarApplication.php';
+
+        $app = new SugarApplication();
+        $app->startSession();
     }
 }

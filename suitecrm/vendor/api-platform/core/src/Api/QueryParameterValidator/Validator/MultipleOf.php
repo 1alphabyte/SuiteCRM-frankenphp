@@ -13,8 +13,16 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Api\QueryParameterValidator\Validator;
 
+use ApiPlatform\ParameterValidator\Validator\CheckFilterDeprecationsTrait;
+use ApiPlatform\ParameterValidator\Validator\ValidatorInterface;
+
+/**
+ * @deprecated use \ApiPlatform\ParameterValidator\Validator\MultipleOf instead
+ */
 final class MultipleOf implements ValidatorInterface
 {
+    use CheckFilterDeprecationsTrait;
+
     /**
      * {@inheritdoc}
      */
@@ -25,7 +33,9 @@ final class MultipleOf implements ValidatorInterface
             return [];
         }
 
-        $multipleOf = $filterDescription['swagger']['multipleOf'] ?? null;
+        $this->checkFilterDeprecations($filterDescription);
+
+        $multipleOf = $filterDescription['openapi']['multipleOf'] ?? $filterDescription['swagger']['multipleOf'] ?? null;
 
         if (null !== $multipleOf && 0 !== ($value % $multipleOf)) {
             return [
@@ -36,5 +46,3 @@ final class MultipleOf implements ValidatorInterface
         return [];
     }
 }
-
-class_alias(MultipleOf::class, \ApiPlatform\Core\Filter\Validator\MultipleOf::class);

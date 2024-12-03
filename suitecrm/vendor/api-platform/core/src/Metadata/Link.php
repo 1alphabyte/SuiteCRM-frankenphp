@@ -13,34 +13,50 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Metadata;
 
-#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::TARGET_PARAMETER)]
-final class Link
-{
-    private $parameterName;
-    private $fromProperty;
-    private $toProperty;
-    private $fromClass;
-    private $toClass;
-    private $identifiers;
-    private $compositeIdentifier;
-    private $expandedValue;
+use ApiPlatform\OpenApi;
 
-    public function __construct(?string $parameterName = null, ?string $fromProperty = null, ?string $toProperty = null, ?string $fromClass = null, ?string $toClass = null, ?array $identifiers = null, ?bool $compositeIdentifier = null, ?string $expandedValue = null)
-    {
+#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::TARGET_PARAMETER)]
+final class Link extends Parameter
+{
+    public function __construct(
+        private ?string $parameterName = null,
+        private ?string $fromProperty = null,
+        private ?string $toProperty = null,
+        private ?string $fromClass = null,
+        private ?string $toClass = null,
+        private ?array $identifiers = null,
+        private ?bool $compositeIdentifier = null,
+        private ?string $expandedValue = null,
+        private ?string $security = null,
+        private ?string $securityMessage = null,
+        private ?string $securityObjectName = null,
+
+        ?string $key = null,
+        ?array $schema = null,
+        ?OpenApi\Model\Parameter $openApi = null,
+        mixed $provider = null,
+        mixed $filter = null,
+        ?string $property = null,
+        ?string $description = null,
+        ?bool $required = null,
+        array $extraProperties = [],
+    ) {
         // For the inverse property shortcut
-        if ($parameterName && class_exists($parameterName)) {
-            $this->fromClass = $parameterName;
-        } else {
-            $this->parameterName = $parameterName;
+        if ($this->parameterName && class_exists($this->parameterName)) {
+            $this->fromClass = $this->parameterName;
         }
 
-        $this->fromClass = $fromClass;
-        $this->toClass = $toClass;
-        $this->fromProperty = $fromProperty;
-        $this->toProperty = $toProperty;
-        $this->identifiers = $identifiers;
-        $this->compositeIdentifier = $compositeIdentifier;
-        $this->expandedValue = $expandedValue;
+        parent::__construct(
+            key: $key,
+            schema: $schema,
+            openApi: $openApi,
+            provider: $provider,
+            filter: $filter,
+            property: $property,
+            description: $description,
+            required: $required,
+            extraProperties: $extraProperties
+        );
     }
 
     public function getParameterName(): ?string
@@ -147,6 +163,45 @@ final class Link
         return $self;
     }
 
+    public function getSecurity(): ?string
+    {
+        return $this->security;
+    }
+
+    public function getSecurityMessage(): ?string
+    {
+        return $this->securityMessage;
+    }
+
+    public function withSecurity(?string $security): self
+    {
+        $self = clone $this;
+        $self->security = $security;
+
+        return $self;
+    }
+
+    public function withSecurityMessage(?string $securityMessage): self
+    {
+        $self = clone $this;
+        $self->securityMessage = $securityMessage;
+
+        return $self;
+    }
+
+    public function getSecurityObjectName(): ?string
+    {
+        return $this->securityObjectName;
+    }
+
+    public function withSecurityObjectName(?string $securityObjectName): self
+    {
+        $self = clone $this;
+        $self->securityObjectName = $securityObjectName;
+
+        return $self;
+    }
+
     public function withLink(self $link): self
     {
         $self = clone $this;
@@ -181,6 +236,18 @@ final class Link
 
         if (!$self->getExpandedValue() && ($expandedValue = $link->getExpandedValue())) {
             $self->expandedValue = $expandedValue;
+        }
+
+        if (!$self->getSecurity() && ($security = $link->getSecurity())) {
+            $self->security = $security;
+        }
+
+        if (!$self->getSecurityMessage() && ($securityMessage = $link->getSecurityMessage())) {
+            $self->securityMessage = $securityMessage;
+        }
+
+        if (!$self->getSecurityObjectName() && ($securityObjectName = $link->getSecurityObjectName())) {
+            $self->securityObjectName = $securityObjectName;
         }
 
         return $self;

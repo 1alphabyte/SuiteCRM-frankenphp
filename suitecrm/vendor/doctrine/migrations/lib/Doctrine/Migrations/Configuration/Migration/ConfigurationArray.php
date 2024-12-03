@@ -18,15 +18,9 @@ use function is_callable;
 
 final class ConfigurationArray implements ConfigurationLoader
 {
-    /** @var array<string,mixed> */
-    private $configurations;
-
-    /**
-     * @param array<string,mixed> $configurations
-     */
-    public function __construct(array $configurations)
+    /** @param array<string,mixed> $configurations */
+    public function __construct(private readonly array $configurations)
     {
-        $this->configurations = $configurations;
     }
 
     public function getConfiguration(): Configuration
@@ -42,6 +36,10 @@ final class ConfigurationArray implements ConfigurationLoader
                     $configuration->addMigrationClass($className);
                 }
             },
+
+            'connection' => 'setConnectionName',
+            'em' => 'setEntityManagerName',
+
             'table_storage' => [
                 'table_name' => 'setTableName',
                 'version_column_name' => 'setVersionColumnName',
@@ -56,6 +54,9 @@ final class ConfigurationArray implements ConfigurationLoader
             'custom_template' => 'setCustomTemplate',
             'all_or_nothing' => static function ($value, Configuration $configuration): void {
                 $configuration->setAllOrNothing(is_bool($value) ? $value : BooleanStringFormatter::toBoolean($value, false));
+            },
+            'transactional' => static function ($value, Configuration $configuration): void {
+                $configuration->setTransactional(is_bool($value) ? $value : BooleanStringFormatter::toBoolean($value, true));
             },
             'check_database_platform' =>  static function ($value, Configuration $configuration): void {
                 $configuration->setCheckDatabasePlatform(is_bool($value) ? $value : BooleanStringFormatter::toBoolean($value, false));
@@ -73,11 +74,10 @@ final class ConfigurationArray implements ConfigurationLoader
     }
 
     /**
-     * @param mixed[]                                         $configMap
-     * @param Configuration|TableMetadataStorageConfiguration $object
-     * @param array<string|int,mixed>                         $data
+     * @param mixed[]                 $configMap
+     * @param array<string|int,mixed> $data
      */
-    private static function applyConfigs(array $configMap, $object, array $data): void
+    private static function applyConfigs(array $configMap, Configuration|TableMetadataStorageConfiguration $object, array $data): void
     {
         foreach ($data as $configurationKey => $configurationValue) {
             if (! isset($configMap[$configurationKey])) {
@@ -102,7 +102,7 @@ final class ConfigurationArray implements ConfigurationLoader
                     $callable,
                     $configurationValue,
                     $object,
-                    $data
+                    $data,
                 );
             }
         }

@@ -49,8 +49,9 @@ export class RecordContentComponent implements OnInit, OnDestroy {
     protected fields: FieldMap;
     private subs: Subscription[] = [];
 
-    constructor(protected language: LanguageStore) {
-    }
+    constructor(
+        protected language: LanguageStore
+    ) {}
 
     ngOnInit(): void {
         this.subs.push(this.dataSource.getDisplayConfig().subscribe(config => {

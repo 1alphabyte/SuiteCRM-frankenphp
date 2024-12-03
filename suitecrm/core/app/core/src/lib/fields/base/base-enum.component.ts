@@ -100,7 +100,7 @@ export class BaseEnumComponent extends BaseFieldComponent implements OnInit, OnD
     }
 
     getInvalidClass(): string {
-        if (this.field.formControl && this.field.formControl.invalid && this.field.formControl.touched) {
+        if (this.validateOnlyOnSubmit ? this.isInvalid() : (this.field.formControl.invalid && this.field.formControl.touched)) {
             return 'is-invalid';
         }
         return '';
@@ -154,14 +154,20 @@ export class BaseEnumComponent extends BaseFieldComponent implements OnInit, OnD
         this.options = [];
         Object.keys(this.optionsMap).forEach(key => {
 
-            if (isEmptyString(this.optionsMap[key]) && !this.addEmptyStringOption()) {
+            const isOptionEmpty = isEmptyString(this.optionsMap[key]);
+
+            if (isOptionEmpty && this.isSkipEmptyMode()) {
+                return;
+            }
+
+            if (isOptionEmpty && !this.addEmptyStringOption()){
                 return;
             }
 
             this.options.push({
                 value: key,
                 label: this.optionsMap[key]
-            });
+            } as Option);
         });
 
         if (this.isDynamicEnum) {
@@ -171,6 +177,10 @@ export class BaseEnumComponent extends BaseFieldComponent implements OnInit, OnD
 
     protected addEmptyStringOption(): boolean {
         return this.field.type !== 'multienum';
+    }
+
+    protected isSkipEmptyMode(): boolean {
+        return this.mode === 'massupdate' || this.mode === 'filter';
     }
 
     protected initValue(): void {
@@ -204,7 +214,7 @@ export class BaseEnumComponent extends BaseFieldComponent implements OnInit, OnD
             this.selectedValues.push({
                 value: fieldValue,
                 label: this.valueLabel
-            });
+            } as Option);
         }
     }
 
@@ -233,7 +243,7 @@ export class BaseEnumComponent extends BaseFieldComponent implements OnInit, OnD
         this.selectedValues.push({
             value: defaultVal,
             label: this.optionsMap[defaultVal]
-        });
+        } as Option);
         this.initEnumDefaultFieldValues(defaultVal);
     }
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * SuiteCRM is a customer relationship management program developed by SalesAgility Ltd.
- * Copyright (C) 2021 SalesAgility Ltd.
+ * Copyright (C) 2024 SalesAgility Ltd.
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Affero General Public License version 3 as published by the
@@ -27,7 +27,7 @@
 
 namespace App\Process\LegacyHandler;
 
-use ApiPlatform\Core\Exception\InvalidArgumentException;
+use ApiPlatform\Exception\InvalidArgumentException;
 use App\Engine\LegacyHandler\LegacyHandler;
 use App\Engine\LegacyHandler\LegacyScopeState;
 use App\Module\Service\ModuleNameMapperInterface;
@@ -35,7 +35,7 @@ use App\Process\Entity\Process;
 use App\Process\Service\ProcessHandlerInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use UnlinkService;
 
 class UnlinkRelationHandler extends LegacyHandler implements ProcessHandlerInterface, LoggerAwareInterface
@@ -60,7 +60,7 @@ class UnlinkRelationHandler extends LegacyHandler implements ProcessHandlerInter
      * @param string $legacySessionName
      * @param string $defaultSessionName
      * @param LegacyScopeState $legacyScopeState
-     * @param SessionInterface $session
+     * @param RequestStack $session
      */
     public function __construct(
         string $projectDir,
@@ -68,7 +68,7 @@ class UnlinkRelationHandler extends LegacyHandler implements ProcessHandlerInter
         string $legacySessionName,
         string $defaultSessionName,
         LegacyScopeState $legacyScopeState,
-        SessionInterface $session,
+        RequestStack $session,
         ModuleNameMapperInterface $moduleNameMapper
     ) {
         parent::__construct(
@@ -114,7 +114,7 @@ class UnlinkRelationHandler extends LegacyHandler implements ProcessHandlerInter
         $options = $process->getOptions();
         $payload = $options['payload'] ?? [];
         $baseModule = $payload['baseModule'] ?? '';
-        $relateModule = $payload['relateModule'] ?? '';
+        $relateModule = $payload['recordModule'] ?? '';
         $relateModuleId = $payload['relateRecordId'] ?? '';
 
         $acls = [

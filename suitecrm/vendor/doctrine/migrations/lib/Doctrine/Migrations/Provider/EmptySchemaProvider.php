@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\Migrations\Provider;
 
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Schema;
 
@@ -15,12 +16,9 @@ use Doctrine\DBAL\Schema\Schema;
  */
 final class EmptySchemaProvider implements SchemaProvider
 {
-    /** @var AbstractSchemaManager */
-    private $schemaManager;
-
-    public function __construct(AbstractSchemaManager $schemaManager)
+    /** @param AbstractSchemaManager<AbstractPlatform> $schemaManager */
+    public function __construct(private readonly AbstractSchemaManager $schemaManager)
     {
-        $this->schemaManager = $schemaManager;
     }
 
     public function createSchema(): Schema

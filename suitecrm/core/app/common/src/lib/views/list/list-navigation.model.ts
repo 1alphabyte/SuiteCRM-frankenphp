@@ -58,3 +58,8 @@ export enum PageSelection {
     NEXT = 'NEXT',
     LAST = 'LAST',
 }
+
+export enum PaginationType {
+    PAGINATION = 'pagination',
+    LOAD_MORE = 'load-more'
+}

@@ -24,11 +24,12 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Injectable} from '@angular/core';
+import {inject, Injectable} from '@angular/core';
 import {BehaviorSubject, combineLatestWith, forkJoin, Observable, of, Subscription} from 'rxjs';
 import {
     ColumnDefinition,
     deepClone,
+    ObjectMap,
     Record,
     SearchCriteria,
     SearchMetaFieldMap,
@@ -47,6 +48,7 @@ import {FieldManager} from '../../../../services/record/field/field.manager';
 import {LanguageStore} from '../../../../store/language/language.store';
 import {SavedFilterRecordStore} from './saved-filter-record.store';
 import {SavedFilterRecordStoreFactory} from './saved-filter-record.store.factory';
+import {RecordValidationHandler} from "../../../../services/record/validation/record-validation.handler";
 
 const initialState: FilterContainerState = {
     module: '',
@@ -86,6 +88,7 @@ export class SavedFilterStore implements StateStore {
     protected state$ = this.store.asObservable();
     protected subs: Subscription[] = [];
     protected metadataLoadingState: BehaviorSubject<boolean>;
+    protected recordValidationHandler: RecordValidationHandler;
 
     constructor(
         protected appStateStore: AppStateStore,
@@ -109,7 +112,7 @@ export class SavedFilterStore implements StateStore {
             })
         );
 
-        this.recordStore = savedFilterStoreFactory.create(this.getViewFields$());
+        this.recordStore = savedFilterStoreFactory.create(this.getViewFields$(), this.getRecordMeta$());
 
         this.record$ = this.recordStore.state$.pipe(distinctUntilChanged(), map(record => record as SavedFilter));
         this.stagingRecord$ = this.recordStore.staging$.pipe(distinctUntilChanged(), map(record => record as SavedFilter));
@@ -118,11 +121,13 @@ export class SavedFilterStore implements StateStore {
 
         this.vm$ = this.stagingRecord$.pipe(
             combineLatestWith(this.mode$),
-            map(([record, mode]: [Record, ViewMode]) => {
+            map(([record, mode]: [SavedFilter, ViewMode]) => {
                 this.vm = {record, mode} as FilterContainerData;
                 return this.vm;
             })
         );
+
+        this.recordValidationHandler = inject(RecordValidationHandler);
     }
 
     getModuleName(): string {
@@ -199,41 +204,9 @@ export class SavedFilterStore implements StateStore {
             take(1),
             tap(() => {
                 this.metadataLoadingState.next(false);
-                this.initStaging(searchModule, filter, searchFields, listColumns);
+                this.initStaging(searchModule, filter, searchFields, listColumns, null);
             })
         ).subscribe();
-    }
-
-    initValidators(record: Record): void {
-        if(!record || !record?.fields || !Object.keys(record?.fields).length) {
-            return;
-        }
-
-        Object.keys(record.fields).forEach(fieldName => {
-            const field = record.fields[fieldName];
-            const formControl = field?.formControl ?? null;
-            if (!formControl) {
-                return;
-            }
-
-            this.resetValidators(field);
-
-            const validators = field?.validators ?? [];
-            const asyncValidators = field?.asyncValidators ?? [];
-
-            if (validators.length) {
-                field?.formControl?.setValidators(validators);
-            }
-            if (asyncValidators.length) {
-                field?.formControl?.setAsyncValidators(asyncValidators);
-            }
-        });
-
-    }
-
-    resetValidators(field) {
-        field?.formControl?.clearValidators();
-        field?.formControl?.clearAsyncValidators();
     }
 
     public initStaging(
@@ -241,6 +214,7 @@ export class SavedFilterStore implements StateStore {
         filter: SavedFilter,
         searchFields: SearchMetaFieldMap,
         listColumns: ColumnDefinition[],
+        metadata: ObjectMap
     ) {
 
         const filterRecord: SavedFilter = deepClone(this.recordStore.extractBaseRecord(filter));
@@ -248,9 +222,9 @@ export class SavedFilterStore implements StateStore {
         filterRecord.searchModule = searchModule;
         this.recordStore.setSearchFields(searchFields);
         this.recordStore.setListColumns(listColumns);
-
+        this.recordStore.setMetadata(metadata);
         this.recordStore.setStaging(filterRecord);
-        this.initValidators(this.recordStore.getStaging());
+        this.recordValidationHandler.initValidators(this.recordStore.getStaging());
     }
 
     /**
@@ -414,6 +388,12 @@ export class SavedFilterStore implements StateStore {
             });
 
             return fields;
+        }));
+    }
+
+    public getRecordMeta$(): Observable<ObjectMap> {
+        return this.meta$.pipe(map((recordMetadata: RecordViewMetadata) => {
+            return recordMetadata.metadata || {};
         }));
     }
 

@@ -28,64 +28,111 @@
 
 namespace App\Navbar\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\Navbar\DataProvider\NavbarStateProvider;
 
-/**
- * @ApiResource(
- *     attributes={"security"="is_granted('ROLE_USER')"},
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *     },
- *     graphql={
- *         "item_query"
- *     }
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(security: "is_granted('ROLE_USER')", provider: NavbarStateProvider::class),
+    ],
+    security: "is_granted('ROLE_USER')",
+    graphQlOperations: [
+        new Query(security: "is_granted('ROLE_USER')", provider: NavbarStateProvider::class),
+    ]
+)]
 final class Navbar
 {
     /**
-     * @ApiProperty(identifier=true)
+     * @var string|null
      */
-    public $userID;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'user id',
+        ]
+    )]
+    public ?string $userID;
 
     /**
      * @var array
-     * @ApiProperty
      */
-    public $tabs;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'tabs',
+        ]
+    )]
+    public array $tabs;
 
     /**
      * @var array
-     * @ApiProperty
      */
-    public $groupedTabs;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'groupedTabs',
+        ]
+    )]
+    public array $groupedTabs;
 
     /**
      * @var array
-     * @ApiProperty
      */
-    public $userActionMenu;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'userActionMenu',
+        ]
+    )]
+    public array $userActionMenu;
 
     /**
      * @var array
-     * @ApiProperty
      */
-    public $modules;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'modules',
+        ]
+    )]
+    public array $modules;
 
     /**
      * @var int
-     * @ApiProperty
      */
-    public $maxTabs;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'int',
+            'description' => 'maxTabs',
+        ]
+    )]
+    public int $maxTabs;
 
     /**
      * @var string
-     * @ApiProperty
      */
-    public $type;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'maxTabs',
+        ]
+    )]
+    public string $type;
+
+    /**
+     * @var array
+     */
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'quickActions',
+        ]
+    )]
+    public array $quickActions;
 
     /**
      * @return array
@@ -93,22 +140,16 @@ final class Navbar
     public function toArray(): array
     {
         return [
-            'id' => $this->userID,
-            '_id' => $this->userID,
-            'userID' => $this->userID,
-            'tabs' => $this->tabs,
-            'groupedTabs' => $this->groupedTabs,
-            'userActionMenu' => $this->userActionMenu,
-            'modules' => $this->modules,
-            'maxTabs' => $this->maxTabs,
-            'type' => $this->type,
-            'quickActions' => $this->quickActions,
+            'id' => $this->userID ?? null,
+            '_id' => $this->userID ?? null,
+            'userID' => $this->userID ?? null,
+            'tabs' => $this->tabs ?? null,
+            'groupedTabs' => $this->groupedTabs ?? null,
+            'userActionMenu' => $this->userActionMenu ?? null,
+            'modules' => $this->modules ?? null,
+            'maxTabs' => $this->maxTabs ?? null,
+            'type' => $this->type ?? null,
+            'quickActions' => $this->quickActions ?? null,
         ];
     }
-
-    /**
-     * @var array
-     * @ApiProperty
-     */
-    public $quickActions;
 }

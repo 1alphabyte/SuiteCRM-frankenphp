@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace ApiPlatform\GraphQl\Resolver\Stage;
 
 use ApiPlatform\Metadata\GraphQl\Operation;
-use ApiPlatform\Symfony\Security\ResourceAccessCheckerInterface;
+use ApiPlatform\Metadata\ResourceAccessCheckerInterface;
+use ApiPlatform\Symfony\Security\ResourceAccessCheckerInterface as LegacyResourceAccessCheckerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -24,9 +25,15 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 final class SecurityPostDenormalizeStage implements SecurityPostDenormalizeStageInterface
 {
+    /**
+     * @var LegacyResourceAccessCheckerInterface|ResourceAccessCheckerInterface
+     */
     private $resourceAccessChecker;
 
-    public function __construct(?ResourceAccessCheckerInterface $resourceAccessChecker)
+    /**
+     * @param LegacyResourceAccessCheckerInterface|ResourceAccessCheckerInterface|null $resourceAccessChecker
+     */
+    public function __construct($resourceAccessChecker)
     {
         $this->resourceAccessChecker = $resourceAccessChecker;
     }

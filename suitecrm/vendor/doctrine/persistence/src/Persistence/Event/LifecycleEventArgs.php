@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Doctrine\Persistence\Event;
 
 use Doctrine\Common\EventArgs;
-use Doctrine\Deprecations\Deprecation;
 use Doctrine\Persistence\ObjectManager;
 
 /**
@@ -23,33 +24,11 @@ class LifecycleEventArgs extends EventArgs
     /** @var object */
     private $object;
 
-    /**
-     * @param object $object
-     * @psalm-param TObjectManager $objectManager
-     */
-    public function __construct($object, ObjectManager $objectManager)
+    /** @psalm-param TObjectManager $objectManager */
+    public function __construct(object $object, ObjectManager $objectManager)
     {
         $this->object        = $object;
         $this->objectManager = $objectManager;
-    }
-
-    /**
-     * Retrieves the associated entity.
-     *
-     * @deprecated
-     *
-     * @return object
-     */
-    public function getEntity()
-    {
-        Deprecation::trigger(
-            'doctrine/persistence',
-            'https://github.com/doctrine/common/pull/222',
-            '%s is deprecated and will be removed in 3.0, use getObject() instead',
-            __METHOD__
-        );
-
-        return $this->object;
     }
 
     /**

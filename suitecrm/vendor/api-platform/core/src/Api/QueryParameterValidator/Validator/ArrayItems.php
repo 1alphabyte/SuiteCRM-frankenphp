@@ -13,8 +13,16 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Api\QueryParameterValidator\Validator;
 
+use ApiPlatform\ParameterValidator\Validator\CheckFilterDeprecationsTrait;
+use ApiPlatform\ParameterValidator\Validator\ValidatorInterface;
+
+/**
+ * @deprecated use \ApiPlatform\ParameterValidator\Validator\ArrayItems instead
+ */
 final class ArrayItems implements ValidatorInterface
 {
+    use CheckFilterDeprecationsTrait;
+
     /**
      * {@inheritdoc}
      */
@@ -24,9 +32,11 @@ final class ArrayItems implements ValidatorInterface
             return [];
         }
 
-        $maxItems = $filterDescription['swagger']['maxItems'] ?? null;
-        $minItems = $filterDescription['swagger']['minItems'] ?? null;
-        $uniqueItems = $filterDescription['swagger']['uniqueItems'] ?? false;
+        $this->checkFilterDeprecations($filterDescription);
+
+        $maxItems = $filterDescription['openapi']['maxItems'] ?? $filterDescription['swagger']['maxItems'] ?? null;
+        $minItems = $filterDescription['openapi']['minItems'] ?? $filterDescription['swagger']['minItems'] ?? null;
+        $uniqueItems = $filterDescription['openapi']['uniqueItems'] ?? $filterDescription['swagger']['uniqueItems'] ?? false;
 
         $errorList = [];
 
@@ -60,9 +70,9 @@ final class ArrayItems implements ValidatorInterface
             return $value;
         }
 
-        $collectionFormat = $filterDescription['swagger']['collectionFormat'] ?? 'csv';
+        $collectionFormat = $filterDescription['openapi']['collectionFormat'] ?? $filterDescription['swagger']['collectionFormat'] ?? 'csv';
 
-        return explode(self::getSeparator($collectionFormat), $value) ?: []; // @phpstan-ignore-line
+        return explode(self::getSeparator($collectionFormat), (string) $value) ?: []; // @phpstan-ignore-line
     }
 
     /**
@@ -70,19 +80,12 @@ final class ArrayItems implements ValidatorInterface
      */
     private static function getSeparator(string $collectionFormat): string
     {
-        switch ($collectionFormat) {
-            case 'csv':
-                return ',';
-            case 'ssv':
-                return ' ';
-            case 'tsv':
-                return '\t';
-            case 'pipes':
-                return '|';
-            default:
-                throw new \InvalidArgumentException(sprintf('Unknown collection format %s', $collectionFormat));
-        }
+        return match ($collectionFormat) {
+            'csv' => ',',
+            'ssv' => ' ',
+            'tsv' => '\t',
+            'pipes' => '|',
+            default => throw new \InvalidArgumentException(sprintf('Unknown collection format %s', $collectionFormat)),
+        };
     }
 }
-
-class_alias(ArrayItems::class, \ApiPlatform\Core\Filter\Validator\ArrayItems::class);

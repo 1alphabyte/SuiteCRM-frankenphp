@@ -27,20 +27,18 @@
 
 namespace App\Install\Command;
 
+use App\Engine\LegacyHandler\DefaultLegacyHandler;
 use App\Engine\Service\ProcessSteps\ProcessStepExecutorInterface;
 use App\Install\Service\LegacyMigration\LegacyMigrationHandlerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
 
 /**
  * Class SetupLegacyMigrationCommand
  * @package App\Install\Command
  */
+#[AsCommand(name: 'suitecrm:app:setup-legacy-migration')]
 class SetupLegacyMigrationCommand extends BaseStepExecutorCommand
 {
-    /**
-     * @var string
-     */
-    protected static $defaultName = 'suitecrm:app:setup-legacy-migration';
-
     /**
      * @var LegacyMigrationHandlerInterface
      */
@@ -54,10 +52,15 @@ class SetupLegacyMigrationCommand extends BaseStepExecutorCommand
     /**
      * SetupLegacyMigrationCommand constructor.
      * @param LegacyMigrationHandlerInterface $handler
+     * @param DefaultLegacyHandler $legacyHandler
      */
-    public function __construct(LegacyMigrationHandlerInterface $handler)
+    public function __construct(
+        LegacyMigrationHandlerInterface $handler,
+        DefaultLegacyHandler $legacyHandler
+    )
     {
         $this->handler = $handler;
+        $this->legacyHandler = $legacyHandler;
 
         $this->initSession = true;
 

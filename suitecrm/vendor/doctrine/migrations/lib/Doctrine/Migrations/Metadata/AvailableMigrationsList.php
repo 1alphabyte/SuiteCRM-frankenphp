@@ -9,6 +9,7 @@ use Doctrine\Migrations\Exception\MigrationNotAvailable;
 use Doctrine\Migrations\Exception\NoMigrationsFoundWithCriteria;
 use Doctrine\Migrations\Version\Version;
 
+use function array_filter;
 use function array_values;
 use function count;
 
@@ -18,19 +19,15 @@ use function count;
 final class AvailableMigrationsList implements Countable
 {
     /** @var AvailableMigration[] */
-    private $items = [];
+    private array $items = [];
 
-    /**
-     * @param AvailableMigration[] $items
-     */
+    /** @param AvailableMigration[] $items */
     public function __construct(array $items)
     {
         $this->items = array_values($items);
     }
 
-    /**
-     * @return AvailableMigration[]
-     */
+    /** @return AvailableMigration[] */
     public function getItems(): array
     {
         return $this->items;
@@ -80,5 +77,10 @@ final class AvailableMigrationsList implements Countable
         }
 
         throw MigrationNotAvailable::forVersion($version);
+    }
+
+    public function newSubset(ExecutedMigrationsList $executedMigrations): self
+    {
+        return new self(array_filter($this->getItems(), static fn (AvailableMigration $migration): bool => ! $executedMigrations->hasMigration($migration->getVersion())));
     }
 }

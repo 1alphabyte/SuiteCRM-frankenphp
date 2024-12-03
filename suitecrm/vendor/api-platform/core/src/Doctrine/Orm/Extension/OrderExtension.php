@@ -28,17 +28,14 @@ use Doctrine\ORM\QueryBuilder;
  */
 final class OrderExtension implements QueryCollectionExtensionInterface
 {
-    private $order;
-
-    public function __construct(string $order = null)
+    public function __construct(private readonly ?string $order = null)
     {
-        $this->order = $order;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function applyToCollection(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass = null, Operation $operation = null, array $context = []): void
+    public function applyToCollection(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, ?string $resourceClass = null, ?Operation $operation = null, array $context = []): void
     {
         if (null === $resourceClass) {
             throw new InvalidArgumentException('The "$resourceClass" parameter must not be null');
@@ -54,7 +51,7 @@ final class OrderExtension implements QueryCollectionExtensionInterface
 
         $classMetaData = $queryBuilder->getEntityManager()->getClassMetadata($resourceClass);
         $identifiers = $classMetaData->getIdentifier();
-        $defaultOrder = $operation ? ($operation->getOrder() ?? []) : [];
+        $defaultOrder = $operation?->getOrder() ?? [];
 
         if ([] !== $defaultOrder) {
             foreach ($defaultOrder as $field => $order) {

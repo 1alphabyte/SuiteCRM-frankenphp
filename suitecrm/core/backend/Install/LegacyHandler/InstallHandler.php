@@ -33,6 +33,7 @@ use App\Engine\Model\Feedback;
 use App\Install\Service\Installation\InstallStatus;
 use App\Install\Service\InstallationUtilsTrait;
 use App\Install\Service\InstallPreChecks;
+use App\Security\AppSecretGenerator;
 use Exception;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
@@ -41,7 +42,7 @@ use PDOException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Class InstallHandler
@@ -63,6 +64,8 @@ class InstallHandler extends LegacyHandler
      */
     private $logger;
 
+    protected AppSecretGenerator $appSecretGenerator;
+
     /**
      * @inheritDoc
      */
@@ -78,17 +81,19 @@ class InstallHandler extends LegacyHandler
      * @param string $legacySessionName
      * @param string $defaultSessionName
      * @param LegacyScopeState $legacyScopeState
-     * @param SessionInterface $session
+     * @param RequestStack $requestStack
      * @param LoggerInterface $logger
+     * @param AppSecretGenerator $appSecretGenerator
      */
     public function __construct(
-        string           $projectDir,
-        string           $legacyDir,
-        string           $legacySessionName,
-        string           $defaultSessionName,
-        LegacyScopeState $legacyScopeState,
-        SessionInterface $session,
-        LoggerInterface  $logger
+        string             $projectDir,
+        string             $legacyDir,
+        string             $legacySessionName,
+        string             $defaultSessionName,
+        LegacyScopeState   $legacyScopeState,
+        RequestStack       $requestStack,
+        LoggerInterface    $logger,
+        AppSecretGenerator $appSecretGenerator
     )
     {
         parent::__construct(
@@ -97,10 +102,11 @@ class InstallHandler extends LegacyHandler
             $legacySessionName,
             $defaultSessionName,
             $legacyScopeState,
-            $session
+            $requestStack
         );
         $this->legacyDir = $legacyDir;
         $this->logger = $logger;
+        $this->appSecretGenerator = $appSecretGenerator;
     }
 
     /**
@@ -219,25 +225,13 @@ class InstallHandler extends LegacyHandler
         $feedback = new Feedback();
         $feedback->setSuccess(true);
 
-        $checkFile = __DIR__ . '/../../../../.curl_check_main_page';
 
         require_once __DIR__ . "/../../../../core/backend/Install/Service/InstallPreChecks.php";
         $installChecks = new InstallPreChecks($log);
 
-        try {
-            file_put_contents($checkFile, 'running');
-        } catch (Exception $e) {
-            $feedback->setSuccess(false);
-            $feedback->setErrors([$e->getMessage()]);
-            return $feedback;
-        }
         $results[] = $installChecks->checkMainPage($url);
         $results[] = $installChecks->checkGraphQlAPI($url);
         $modStrings = $installChecks->getLanguageStrings();
-
-        if (file_exists($checkFile)) {
-            unlink($checkFile);
-        }
 
         $warnings = [];
         $errorsFound = false;
@@ -248,7 +242,7 @@ class InstallHandler extends LegacyHandler
 
                     $errorsFound = true;
 
-                    if (empty($error)){
+                    if (empty($error)) {
                         continue;
                     }
 
@@ -369,12 +363,15 @@ class InstallHandler extends LegacyHandler
         $port = $inputArray['db_port'] ?? '';
         $hostString = !empty($port) ? $host . ':' . $port : $host;
 
-        $dbUrl = "DATABASE_URL=\"mysql://$username:$password@$hostString/$dbName\"";
+        $content = "DATABASE_URL=\"mysql://$username:$password@$hostString/$dbName\"\n";
+        $content .= "APP_SECRET=" . $this->appSecretGenerator->generate();
+        $this->logger->info('Generated randomly generated APP_SECRET for .env.local');
+
         $filesystem = new Filesystem();
         try {
             chdir($this->projectDir);
 
-            $filesystem->dumpFile('.env.local', $dbUrl);
+            $filesystem->dumpFile('.env.local', $content);
 
             chdir($this->legacyDir);
 

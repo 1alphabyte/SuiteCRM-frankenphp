@@ -28,7 +28,6 @@ return static function (ContainerConfigurator $container) {
                 abstract_arg('events to dispatch'),
             ])
             ->abstract()
-            ->public()
         ->set('state_machine.abstract', StateMachine::class)
             ->args([
                 abstract_arg('workflow definition'),
@@ -38,7 +37,6 @@ return static function (ContainerConfigurator $container) {
                 abstract_arg('events to dispatch'),
             ])
             ->abstract()
-            ->public()
         ->set('workflow.marking_store.method', MethodMarkingStore::class)
             ->abstract()
         ->set('workflow.registry', Registry::class)

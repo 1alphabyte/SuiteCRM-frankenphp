@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace ApiPlatform\GraphQl\Serializer;
 
+use ApiPlatform\Metadata\GraphQl\Mutation;
 use ApiPlatform\Metadata\GraphQl\Operation;
+use ApiPlatform\Metadata\GraphQl\Subscription;
 use GraphQL\Type\Definition\ResolveInfo;
 use Symfony\Component\Serializer\NameConverter\AdvancedNameConverterInterface;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
@@ -25,11 +27,8 @@ use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
  */
 final class SerializerContextBuilder implements SerializerContextBuilderInterface
 {
-    private $nameConverter;
-
-    public function __construct(?NameConverterInterface $nameConverter)
+    public function __construct(private readonly ?NameConverterInterface $nameConverter)
     {
-        $this->nameConverter = $nameConverter;
     }
 
     public function create(?string $resourceClass, Operation $operation, array $resolverContext, bool $normalization): array
@@ -71,7 +70,7 @@ final class SerializerContextBuilder implements SerializerContextBuilderInterfac
 
         $attributes = $this->replaceIdKeys($fields['edges']['node'] ?? $fields['collection'] ?? $fields, $resourceClass, $context);
 
-        if ($resolverContext['is_mutation'] || $resolverContext['is_subscription']) {
+        if ($operation instanceof Subscription || $operation instanceof Mutation) {
             $wrapFieldName = lcfirst($operation->getShortName());
 
             return $attributes[$wrapFieldName] ?? [];
@@ -91,7 +90,7 @@ final class SerializerContextBuilder implements SerializerContextBuilderInterfac
                 continue;
             }
 
-            $denormalizedFields[$this->denormalizePropertyName((string) $key, $resourceClass, $context)] = \is_array($fields[$key]) ? $this->replaceIdKeys($fields[$key], $resourceClass, $context) : $value;
+            $denormalizedFields[$this->denormalizePropertyName((string) $key, $resourceClass, $context)] = \is_array($value) ? $this->replaceIdKeys($value, $resourceClass, $context) : $value;
         }
 
         return $denormalizedFields;

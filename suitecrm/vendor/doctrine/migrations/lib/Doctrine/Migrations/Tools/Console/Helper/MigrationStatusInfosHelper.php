@@ -35,43 +35,17 @@ use function sprintf;
  */
 class MigrationStatusInfosHelper
 {
-    /** @var Configuration */
-    private $configuration;
-
-    /** @var Connection */
-    private $connection;
-
-    /** @var AliasResolver */
-    private $aliasResolver;
-
-    /** @var MetadataStorage */
-    private $metadataStorage;
-
-    /** @var MigrationPlanCalculator */
-    private $migrationPlanCalculator;
-
-    /** @var MigrationStatusCalculator */
-    private $statusCalculator;
-
     public function __construct(
-        Configuration $configuration,
-        Connection $connection,
-        AliasResolver $aliasResolver,
-        MigrationPlanCalculator $migrationPlanCalculator,
-        MigrationStatusCalculator $statusCalculator,
-        MetadataStorage $metadataStorage
+        private readonly Configuration $configuration,
+        private readonly Connection $connection,
+        private readonly AliasResolver $aliasResolver,
+        private readonly MigrationPlanCalculator $migrationPlanCalculator,
+        private readonly MigrationStatusCalculator $statusCalculator,
+        private readonly MetadataStorage $metadataStorage,
     ) {
-        $this->configuration           = $configuration;
-        $this->connection              = $connection;
-        $this->aliasResolver           = $aliasResolver;
-        $this->migrationPlanCalculator = $migrationPlanCalculator;
-        $this->metadataStorage         = $metadataStorage;
-        $this->statusCalculator        = $statusCalculator;
     }
 
-    /**
-     * @param Version[] $versions
-     */
+    /** @param Version[] $versions */
     public function listVersions(array $versions, OutputInterface $output): void
     {
         $table = new Table($output);
@@ -79,7 +53,7 @@ class MigrationStatusInfosHelper
             [
                 [new TableCell('Migration Versions', ['colspan' => 4])],
                 ['Migration', 'Status', 'Migrated At', 'Execution Time', 'Description'],
-            ]
+            ],
         );
         $executedMigrations  = $this->metadataStorage->getExecutedMigrations();
         $availableMigrations = $this->migrationPlanCalculator->getMigrations();
@@ -135,12 +109,12 @@ class MigrationStatusInfosHelper
         $table->setHeaders(
             [
                 [new TableCell('Configuration', ['colspan' => 3])],
-            ]
+            ],
         );
 
         $dataGroup = [
             'Storage' => [
-                'Type' => $storage !== null ? get_class($storage) : null,
+                'Type' => $storage !== null ? $storage::class : null,
             ],
             'Database' => [
                 'Driver' => get_class($this->connection->getDriver()),
@@ -190,7 +164,7 @@ class MigrationStatusInfosHelper
             $first = false;
             array_unshift(
                 $nsRows[0],
-                new TableCell('<info>' . $group . '</info>', ['rowspan' => count($dataValues)])
+                new TableCell('<info>' . $group . '</info>', ['rowspan' => count($dataValues)]),
             );
             $table->addRows($nsRows);
         }
@@ -202,7 +176,7 @@ class MigrationStatusInfosHelper
     {
         try {
             $version = $this->aliasResolver->resolveVersionAlias($alias);
-        } catch (Throwable $e) {
+        } catch (Throwable) {
             $version = null;
         }
 
@@ -225,7 +199,7 @@ class MigrationStatusInfosHelper
         // Show normal version number
         return sprintf(
             '<comment>%s </comment>',
-            (string) $version
+            (string) $version,
         );
     }
 }

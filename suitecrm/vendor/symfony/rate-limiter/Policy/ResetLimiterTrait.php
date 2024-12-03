@@ -14,34 +14,20 @@ namespace Symfony\Component\RateLimiter\Policy;
 use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
-/**
- * @experimental in 5.2
- */
 trait ResetLimiterTrait
 {
-    /**
-     * @var LockInterface
-     */
-    private $lock;
+    private ?LockInterface $lock;
+    private StorageInterface $storage;
+    private string $id;
 
-    /**
-     * @var StorageInterface
-     */
-    private $storage;
-
-    private $id;
-
-    /**
-     * {@inheritdoc}
-     */
     public function reset(): void
     {
         try {
-            $this->lock->acquire(true);
+            $this->lock?->acquire(true);
 
             $this->storage->delete($this->id);
         } finally {
-            $this->lock->release();
+            $this->lock?->release();
         }
     }
 }

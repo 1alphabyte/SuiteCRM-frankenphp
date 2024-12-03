@@ -30,6 +30,7 @@ services:
       $cacheResetActions: '%legacy.cache_reset_actions%'
       $navigationTabLimits: '%themes.navigation_tab_limits%'
       $baseActions: '%module.base_actions%'
+      $filterRangeSearchTypes: '%module.filter.range_search_types%'
       $listViewBulkActions: '%module.listview.bulk_action%'
       $listViewLineActions: '%module.listview.line_action%'
       $listViewTableActions: '%module.listview.table_action%'
@@ -44,6 +45,7 @@ services:
       $recordViewSidebarWidgets: '%module.recordview.sidebar_widgets%'
       $recordViewBottomWidgets: '%module.recordview.bottom_widgets%'
       $recordViewTopWidgets: '%module.recordview.top_widgets%'
+      $recordViewConvertIgnore: '%module.recordview.convert_ignore%'
       $subpanelViewActionLimits: '%module.subpanelview.actions_limits%'
       $groupedFieldsTypeMap: '%record.fields.grouped_fields_type_map%'
       $currencyFieldsTypeMap: '%record.fields.currency_fields_type_map%'
@@ -54,6 +56,7 @@ services:
       $uiConfigs: '%ui%'
       $notificationsConfigs: '%notifications%'
       $notificationsReloadActions: '%notifications_reload_actions%'
+      $globalRecentlyViewedReloadActions: '%global_recently_viewed_reload_actions%'
       $systemSettings: '%system.settings%'
       $extensions: '%extensions%'
       $upgradeConfig: '%upgrades%'
@@ -143,14 +146,11 @@ services:
     arguments:
       - !tagged { tag: 'app.process.handler' }
 
-  App\Security\LegacySessionDenyAccessListener:
-    decorates: 'api_platform.security.listener.request.deny_access'
-
-  App\Security\LegacySessionSecurityStage:
-    decorates: 'api_platform.graphql.resolver.stage.security'
-
-  App\Engine\Service\Extensions\ExtensionAssetCacheWarmupDecorator:
-    decorates: 'cache_warmer'
+  App\Engine\Service\Extensions\ExtensionAssetCopyCacheWarmer:
+    arguments:
+      - '@App\Engine\Service\Extensions\ExtensionAssetCopyInterface'
+    tags:
+      - name: 'kernel.cache_warmer'
 
   security.authenticator.json_login:
     class: App\Security\AppJsonLoginAuthenticator
@@ -163,7 +163,9 @@ services:
       - !abstract options
       - '@?property_accessor'
 
-  security.listener.json_login_ldap.main:
+  security.listener.json_login_ldap.main: '@App\Security\Ldap\AppCheckLdapCredentialsListener'
+
+  App\Security\Ldap\AppCheckLdapCredentialsListener:
     class: App\Security\Ldap\AppCheckLdapCredentialsListener
     tags:
       - name: 'kernel.event_subscriber'
@@ -171,11 +173,32 @@ services:
     arguments:
       - '@security.ldap_locator'
 
-  App\Security\LegacySessionLogoutHandler:
+  App\Security\LegacySessionLogoutListener:
     tags:
       - name: 'kernel.event_listener'
         event: 'Symfony\Component\Security\Http\Event\LogoutEvent'
         dispatcher: security.event_dispatcher.main
+
+  session.storage.factory.legacy_bridge:
+    class: App\Security\Session\LegacyBridgeSessionStorageFactory
+    arguments:
+      - '@App\Engine\LegacyHandler\DefaultLegacyHandler'
+      - '@session.handler.legacy_bridge'
+      - !service
+          class: Symfony\Component\HttpFoundation\Session\Storage\MetadataBag
+          arguments:
+            - '%session.metadata.storage_key%'
+            - '%session.metadata.update_threshold%'
+      - 'false'
+
+  session.handler.legacy_bridge:
+    class: App\Security\Session\LegacyBridgeSessionHandler
+    arguments:
+      - !service
+          class: Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler
+          arguments:
+            - '%session.save_path%'
+      - '@App\Engine\LegacyHandler\DefaultLegacyHandler'
 
   App\Security\RouteMatcher:
     class: App\Security\RouteMatcher
@@ -191,7 +214,7 @@ services:
     tags: [ { name: kernel.event_listener, event: kernel.response, method: onKernelResponse } ]
     arguments:
       $routes:
-        - path: '(/login$|/$|/auth$|/logout$|/session-status|/auth/logout|/auth/login|/auth/session-status)'
+        - path: '(/login$|/$|/auth$|/logout$|/logged-out$|/session-status|/auth/logout|/auth/login|/auth/session-status)'
       $cookieName: 'XSRF-TOKEN'
       $cookieExpire: 0
       $cookiePath: /
@@ -301,6 +324,10 @@ services:
 
   entity_manager:
     alias: doctrine.orm.entity_manager
+    public: true
+
+  security.app_secret_generator:
+    alias: App\Security\AppSecretGenerator
     public: true
 
   App\Process\Service\ActionNameMapperInterface: '@App\Engine\LegacyHandler\ActionNameMapperHandler'

@@ -35,7 +35,7 @@ use App\Engine\LegacyHandler\LegacyScopeState;
 use App\Languages\Entity\ModStrings;
 use App\Module\Service\ModuleNameMapperInterface;
 use App\Module\Service\ModuleRegistryInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class ModStringsHandler extends LegacyHandler
 {
@@ -68,7 +68,7 @@ class ModStringsHandler extends LegacyHandler
      * @param LegacyScopeState $legacyScopeState
      * @param ModuleNameMapperInterface $moduleNameMapper
      * @param ModuleRegistryInterface $moduleRegistry
-     * @param SessionInterface $session
+     * @param RequestStack $session
      */
     public function __construct(
         string $projectDir,
@@ -78,7 +78,7 @@ class ModStringsHandler extends LegacyHandler
         LegacyScopeState $legacyScopeState,
         ModuleNameMapperInterface $moduleNameMapper,
         ModuleRegistryInterface $moduleRegistry,
-        SessionInterface $session
+        RequestStack $session
     ) {
         parent::__construct($projectDir, $legacyDir, $legacySessionName, $defaultSessionName, $legacyScopeState, $session);
         $this->moduleNameMapper = $moduleNameMapper;
@@ -119,7 +119,8 @@ class ModStringsHandler extends LegacyHandler
         $allModStringsArray = [];
         foreach ($modules as $module) {
             $frontendName = $this->moduleNameMapper->toFrontEnd($module);
-            $moduleStrings = return_module_language($language, $module);
+            $moduleStrings = return_module_language($language, $module) ?? [];
+            $moduleStrings = $this->decodeLabels($moduleStrings);
             if (!empty($moduleStrings)) {
                 $moduleStrings = $this->removeEndingColon($moduleStrings);
             }
@@ -155,5 +156,17 @@ class ModStringsHandler extends LegacyHandler
         }, $stringArray);
 
         return $stringArray;
+    }
+
+    protected function decodeLabels(array $moduleStrings): array
+    {
+        foreach($moduleStrings as $key => $string){
+            if (!is_array($string)) {
+                $string = html_entity_decode($string ?? '', ENT_QUOTES);
+            }
+            $moduleStrings[$key] = $string;
+        }
+
+        return $moduleStrings;
     }
 }

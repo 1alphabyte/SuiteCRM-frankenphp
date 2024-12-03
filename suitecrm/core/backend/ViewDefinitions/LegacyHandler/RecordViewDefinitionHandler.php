@@ -39,7 +39,7 @@ use DetailView2;
 use EditView;
 use Exception;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use ViewDetail;
 use ViewEdit;
 use ViewFactory;
@@ -102,7 +102,7 @@ class RecordViewDefinitionHandler extends LegacyHandler
      * @param array $recordViewSidebarWidgets
      * @param array $recordViewBottomWidgets
      * @param array $recordViewTopWidgets
-     * @param SessionInterface $session
+     * @param RequestStack $session
      */
     public function __construct(
         string $projectDir,
@@ -117,7 +117,7 @@ class RecordViewDefinitionHandler extends LegacyHandler
         array $recordViewSidebarWidgets,
         array $recordViewBottomWidgets,
         array $recordViewTopWidgets,
-        SessionInterface $session
+        RequestStack $session
     ) {
         parent::__construct(
             $projectDir,
@@ -190,9 +190,11 @@ class RecordViewDefinitionHandler extends LegacyHandler
             'panels' => [],
             'summaryTemplates' => [],
             'vardefs' => $vardefs,
+            'metadata' => [],
         ];
 
         $this->addTemplateMeta($detailViewDefs, $metadata);
+        $this->addMetadata($detailViewDefs, $metadata);
         $this->addTopWidgetConfig($module, $detailViewDefs, $metadata);
         $this->addSidebarWidgetConfig($module, $detailViewDefs, $metadata);
         $this->addBottomWidgetConfig($module, $detailViewDefs, $metadata);
@@ -315,6 +317,15 @@ class RecordViewDefinitionHandler extends LegacyHandler
         $metadata['templateMeta']['maxColumns'] = $viewDefs['templateMeta']['maxColumns'] ?? 2;
         $metadata['templateMeta']['useTabs'] = $viewDefs['templateMeta']['useTabs'] ?? true;
         $metadata['templateMeta']['tabDefs'] = $viewDefs['templateMeta']['tabDefs'] ?? [];
+    }
+
+    /**
+     * @param array $viewDefs
+     * @param array $metadata
+     */
+    protected function addMetadata(array $viewDefs, array &$metadata): void
+    {
+        $metadata['metadata']= $viewDefs['metadata'] ?? [];
     }
 
     /**
@@ -551,7 +562,7 @@ class RecordViewDefinitionHandler extends LegacyHandler
 
         if (!isset($vardefs[$fieldName])) {
             $message = "RecordViewDefinitions: '$fieldName' not set on vardefs. Ignoring.";
-            $this->logger->warning($message);
+            $this->logger->debug($message);
 
             return;
         }

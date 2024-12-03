@@ -15,7 +15,6 @@ use PHPUnit\Framework\Constraint\LogicalAnd;
 use PHPUnit\Framework\Constraint\LogicalNot;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Test\Constraint as DomCrawlerConstraint;
-use Symfony\Component\DomCrawler\Test\Constraint\CrawlerSelectorAttributeValueSame;
 use Symfony\Component\DomCrawler\Test\Constraint\CrawlerSelectorExists;
 
 /**
@@ -35,11 +34,24 @@ trait DomCrawlerAssertionsTrait
         self::assertThat(self::getCrawler(), new LogicalNot(new DomCrawlerConstraint\CrawlerSelectorExists($selector)), $message);
     }
 
+    public static function assertSelectorCount(int $expectedCount, string $selector, string $message = ''): void
+    {
+        self::assertThat(self::getCrawler(), new DomCrawlerConstraint\CrawlerSelectorCount($expectedCount, $selector), $message);
+    }
+
     public static function assertSelectorTextContains(string $selector, string $text, string $message = ''): void
     {
         self::assertThat(self::getCrawler(), LogicalAnd::fromConstraints(
             new DomCrawlerConstraint\CrawlerSelectorExists($selector),
             new DomCrawlerConstraint\CrawlerSelectorTextContains($selector, $text)
+        ), $message);
+    }
+
+    public static function assertAnySelectorTextContains(string $selector, string $text, string $message = ''): void
+    {
+        self::assertThat(self::getCrawler(), LogicalAnd::fromConstraints(
+            new DomCrawlerConstraint\CrawlerSelectorExists($selector),
+            new DomCrawlerConstraint\CrawlerAnySelectorTextContains($selector, $text)
         ), $message);
     }
 
@@ -51,11 +63,27 @@ trait DomCrawlerAssertionsTrait
         ), $message);
     }
 
+    public static function assertAnySelectorTextSame(string $selector, string $text, string $message = ''): void
+    {
+        self::assertThat(self::getCrawler(), LogicalAnd::fromConstraints(
+            new DomCrawlerConstraint\CrawlerSelectorExists($selector),
+            new DomCrawlerConstraint\CrawlerAnySelectorTextSame($selector, $text)
+        ), $message);
+    }
+
     public static function assertSelectorTextNotContains(string $selector, string $text, string $message = ''): void
     {
         self::assertThat(self::getCrawler(), LogicalAnd::fromConstraints(
             new DomCrawlerConstraint\CrawlerSelectorExists($selector),
             new LogicalNot(new DomCrawlerConstraint\CrawlerSelectorTextContains($selector, $text))
+        ), $message);
+    }
+
+    public static function assertAnySelectorTextNotContains(string $selector, string $text, string $message = ''): void
+    {
+        self::assertThat(self::getCrawler(), LogicalAnd::fromConstraints(
+            new DomCrawlerConstraint\CrawlerSelectorExists($selector),
+            new LogicalNot(new DomCrawlerConstraint\CrawlerAnySelectorTextContains($selector, $text))
         ), $message);
     }
 
@@ -87,18 +115,12 @@ trait DomCrawlerAssertionsTrait
 
     public static function assertCheckboxChecked(string $fieldName, string $message = ''): void
     {
-        self::assertThat(self::getCrawler(), LogicalAnd::fromConstraints(
-            new CrawlerSelectorExists("input[name=\"$fieldName\"]"),
-            new CrawlerSelectorAttributeValueSame("input[name=\"$fieldName\"]", 'checked', 'checked')
-        ), $message);
+        self::assertThat(self::getCrawler(), new CrawlerSelectorExists("input[name=\"$fieldName\"]:checked"), $message);
     }
 
     public static function assertCheckboxNotChecked(string $fieldName, string $message = ''): void
     {
-        self::assertThat(self::getCrawler(), LogicalAnd::fromConstraints(
-            new CrawlerSelectorExists("input[name=\"$fieldName\"]"),
-            new LogicalNot(new CrawlerSelectorAttributeValueSame("input[name=\"$fieldName\"]", 'checked', 'checked'))
-        ), $message);
+        self::assertThat(self::getCrawler(), new LogicalNot(new CrawlerSelectorExists("input[name=\"$fieldName\"]:checked")), $message);
     }
 
     public static function assertFormValue(string $formSelector, string $fieldName, string $value, string $message = ''): void

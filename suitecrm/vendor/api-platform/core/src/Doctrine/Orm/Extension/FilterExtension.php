@@ -29,24 +29,20 @@ use Psr\Container\ContainerInterface;
  */
 final class FilterExtension implements QueryCollectionExtensionInterface
 {
-    /** @var ContainerInterface */
-    private $filterLocator;
-
-    public function __construct(ContainerInterface $filterLocator)
+    public function __construct(private readonly ContainerInterface $filterLocator)
     {
-        $this->filterLocator = $filterLocator;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function applyToCollection(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass = null, Operation $operation = null, array $context = []): void
+    public function applyToCollection(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, ?string $resourceClass = null, ?Operation $operation = null, array $context = []): void
     {
         if (null === $resourceClass) {
             throw new InvalidArgumentException('The "$resourceClass" parameter must not be null');
         }
 
-        $resourceFilters = $operation ? $operation->getFilters() : [];
+        $resourceFilters = $operation?->getFilters();
 
         if (empty($resourceFilters)) {
             return;
@@ -63,13 +59,13 @@ final class FilterExtension implements QueryCollectionExtensionInterface
                     continue;
                 }
 
-                $context['filters'] = $context['filters'] ?? [];
+                $context['filters'] ??= [];
                 $filter->apply($queryBuilder, $queryNameGenerator, $resourceClass, $operation, $context);
             }
         }
 
         foreach ($orderFilters as $orderFilter) {
-            $context['filters'] = $context['filters'] ?? [];
+            $context['filters'] ??= [];
             $orderFilter->apply($queryBuilder, $queryNameGenerator, $resourceClass, $operation, $context);
         }
     }

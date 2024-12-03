@@ -20,7 +20,7 @@
  * details.
  *
  * You should have received a copy of the GNU Affero General Public License along with
- * this program; if not, see http://www.gnu.org/licenses or write to the Free
+ * this program; if not, see https://www.gnu.org/licenses or write to the Free
  * Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301 USA.
  *
@@ -67,12 +67,12 @@ $mod_strings = array(
     'ERR_CHECKSYS_NOT_WRITABLE' => 'Warning: Not Writable',
     'ERR_CHECKSYS_PHP_INVALID_VER' => 'Your version of PHP is not supported by SuiteCRM. You will need to install a version that is compatible with the SuiteCRM application. Please consult the Compatibility Matrix in the Release Notes for supported PHP Versions. Your version is ',
     'ERR_CHECKSYS_IIS_INVALID_VER' => 'Your version of IIS is not supported by SuiteCRM. You will need to install a version that is compatible with the SuiteCRM application. Please consult the Compatibility Matrix in the Release Notes for supported IIS Versions. Your version is ',
-    'ERR_CHECKSYS_FASTCGI' => 'We detect that you are not using a FastCGI handler mapping for PHP. You will need to install/configure a version that is compatible with the SuiteCRM application. Please consult the Compatibility Matrix in the Release Notes for supported Versions. Please see <a href="http://www.iis.net/php/" target="_blank">http://www.iis.net/php/</a> for details ',
+    'ERR_CHECKSYS_FASTCGI' => 'We detect that you are not using a FastCGI handler mapping for PHP. You will need to install/configure a version that is compatible with the SuiteCRM application. Please consult the Compatibility Matrix in the Release Notes for supported Versions. Please see <a href="https://php.iis.net/" target="_blank">https://php.iis.net/</a> for details ',
     'ERR_CHECKSYS_FASTCGI_LOGGING' => 'For optimal experience using IIS/FastCGI sapi, set fastcgi.logging to 0 in your php.ini file.',
     'LBL_DB_UNAVAILABLE' => 'Database unavailable',
     'LBL_CHECKSYS_DB_SUPPORT_NOT_AVAILABLE' => 'Database Support was not found. Please make sure you have the necessary drivers for one of the following supported Database Types: MySQL or MS SQLServer. You might need to uncomment the extension in the php.ini file, or recompile with the right binary file, depending on your version of PHP. Please refer to your PHP Manual for more information on how to enable Database Support.',
     'LBL_CHECKSYS_XML_NOT_AVAILABLE' => 'Functions associated with XML Parser Libraries that are needed by the SuiteCRM application were not found. You might need to uncomment the extension in the  php.ini file, or recompile with the right binary file, depending on your version of PHP. Please refer to your PHP Manual for more information.',
-    'ERR_CHECKSYS_MBSTRING' => 'Functions associated with the Multibyte Strings PHP extension (mbstring) that are needed by the SuiteCRM application were not found. <br/><br/>Generally, the mbstring module is not enabled by default in PHP and must be activated with --enable-mbstring when the PHP binary is built. Please refer to your PHP Manual for more information on how to enable mbstring support.',
+    'ERR_CHECKSYS_MBSTRING' => 'Functions associated with the Multibyte Strings PHP extension (mbstring) that are needed by the SuiteCRM application were not found. Generally, the mbstring module is not enabled by default in PHP and must be activated with --enable-mbstring when the PHP binary is built. Please refer to your PHP Manual for more information on how to enable mbstring support.',
     'ERR_CHECKSYS_CONFIG_NOT_WRITABLE' => 'The config file exists but is not writeable. Please take the necessary steps to make the file writeable.',
     'ERR_CHECKSYS_CONFIG_NOT_FOUND' => 'Your config.php does not exist. This will be created on install.',
     'ERR_CHECKSYS_CONFIG_OVERRIDE_NOT_WRITABLE' => 'The config override file exists but is not writeable. Please take the necessary steps to make the file writeable. ',
@@ -81,6 +81,7 @@ $mod_strings = array(
     'ERR_CHECKSYS_LOGS_NOT_WRITABLE' => 'The Logs Directory is currently not writable',
     'ERR_CHECKSYS_CACHE_NOT_WRITABLE' => 'The Cache Directory is currently not writable',
     'ERR_CHECKSYS_EXTENSIONS_NOT_WRITABLE' => 'The Extensions Directory is currently not writable',
+    'ERR_CHECKSYS_ROOT_NOT_WRITABLE' => 'The Root Directory is currently not writable. You will not be able to proceed with install.',
     'ERR_CHECKSYS_SECRETS_NOT_WRITABLE' => 'The config/secrets directory is currently not writable',
     'ERR_CHECKSYS_ENV_NOT_WRITABLE' => 'The .env file or the directory it is in is not writable.',
     'ERR_CHECKSYS_JSON_NOT_AVAILABLE' => "Functions associated with JSON Parser Libraries that are needed by the SuiteCRM application were not found. You might need to uncomment the extension in the php.ini file, or recompile with the right binary file, depending on your version of PHP. Please refer to your PHP Manual for more information.",
@@ -155,6 +156,7 @@ $mod_strings = array(
     'LBL_CHECKSYS_EXTENSIONS' => 'Writable Extensions Directory',
     'LBL_CHECKSYS_SECRETS' => 'Writable Config/Secrets Directory',
     'LBL_CHECKSYS_LOGS' => 'Writable Log Directory',
+    'LBL_CHECKSYS_ROOT' => 'Writable Root Directory',
     'LBL_DROP_DB_CONFIRM' => 'The provided Database Name already exists.<br>You can either:<br>1. Click on the Cancel button and choose a new database name, or <br>2. Click the Accept button and continue. All existing tables in the database will be dropped. <strong>This means that all of the tables and pre-existing data will be blown away.</strong>',
     'LBL_CHECKSYS_COMPONENT' => 'Component',
     'LBL_CHECKSYS_CONFIG' => 'Writable SuiteCRM Configuration File (config.php)',
@@ -210,7 +212,7 @@ $mod_strings = array(
     'ERR_CHECKSYS_PDO_MYSQL' => 'The extension PDO MySQL is not enabled, please contact your system administrator.',
     'ERR_CHECKSYS_MYSQLI' => 'The extension MySQLi is not enabled, please contact your system administrator.',
     'ERR_CHECKSYS_SOAP' => 'The extension Soap is not enabled, please contact your system administrator.',
-    'ERR_SUHOSIN' => 'Upload stream is blocked by Suhosin, please add &quot;upload&quot; to suhosin.executor.include.whitelist (See suitecrm.log for more information)',
+    'ERR_SUHOSIN' => 'Upload stream is blocked by Suhosin, please add "upload" to suhosin.executor.include.whitelist (See suitecrm.log for more information)',
     'LBL_UNWRITABLE_SUB_DIR' => 'There are some sub directories that are unwritable. Please take the necessary steps to make the directories writeable ',
     'LBL_REFER_TO_LOGS' => 'There has been an issue in one of your pre-installation checks, please refer to the install.log',
     'LBL_NOT_A_VALID_SUITECRM_PAGE' => 'The SuiteCRM Title cannot be found. This is not a valid SuiteCRM Page.',
@@ -389,6 +391,10 @@ $mod_strings = array(
     'LBL_STEP1' => 'Step 1 of 2 - Pre-Installation requirements',
     'LBL_STEP2' => 'Step 2 of 2 - Configuration',
     'LBL_STEP' => 'Step',
+    'LBL_CHECKS_PASSED' => 'All Checks Passed!',
+    'LBL_WARNINGS_FOUND' => 'Warnings found: please check these before you proceed.',
+    'LBL_ERRORS_FOUND' => ' Errors found: it is recommended that you resolve these before you proceed.',
+    'LBL_ERRORS_AND_WARNINGS_FOUND' => 'Error(s) and Warning(s) found: It is recommended that you check and resolve these before you proceed.',
     'LBL_TITLE_WELCOME' => 'Welcome to the SuiteCRM ',
     'LBL_WELCOME' => 'Welcome to SuiteCRM',
     //welcome page variables
@@ -481,7 +487,7 @@ $mod_strings = array(
     'LBL_PATCH_READY' => 'The following patch(es) are ready to be installed:',
     'LBL_SESSION_ERR_DESCRIPTION' => "SuiteCRM relies upon PHP sessions to store important information while connected to this web server. Your PHP installation does not have the Session information correctly configured.
 											<br><br>A common misconfiguration is that the <b>'session.save_path'</b> directive is not pointing to a valid directory. <br>
-											<br> Please correct your <a target=_new href='http://us2.php.net/manual/en/ref.session.php'>PHP configuration</a> in the php.ini file located here below.",
+											<br> Please correct your <a target=_new href='https://www.php.net/manual/en/ref.session.php'>PHP configuration</a> in the php.ini file located here below.",
     'LBL_SESSION_ERR_TITLE' => 'PHP Sessions Configuration Error',
     'LBL_SYSTEM_NAME' => 'System Name',
     'LBL_COLLATION' => 'Collation Settings',
@@ -633,7 +639,7 @@ $contact_user_link_guid',
     'LBL_START' => '',
     'LBL_DB_CONN_ERR' => 'Database error',
     'LBL_OLD_PHP' => 'Old PHP Version Detected!',
-    'LBL_OLD_PHP_MSG' => 'The recommended PHP version to install SuiteCRM is %s <br />The minimum PHP version required is %s<br />You are using PHP version %s, which is EOL: <a href="http://php.net/eol.php">http://php.net/eol.php</a>.<br />Please consider upgrading your PHP version. ',
+    'LBL_OLD_PHP_MSG' => 'The recommended PHP version to install SuiteCRM is %s <br />The minimum PHP version required is %s<br />You are using PHP version %s, which is EOL: <a href="https://www.php.net/eol.php">https://www.php.net/eol.php</a>.<br />Please consider upgrading your PHP version. ',
     'LBL_OLD_PHP_OK' => 'I\'m aware of the risks and wish to continue.',
 
     'LBL_DBCONF_TITLE_USER_INFO_LABEL' => 'User',
@@ -645,7 +651,12 @@ $contact_user_link_guid',
     'LBL_DBCONFIG_B_MSG1' => 'The username and password of a database administrator who can create database tables and users and who can write to the database is necessary in order to set up the SuiteCRM database.',
     'LBL_SYS_CHECK_WARNING' => 'Ignore System Check Warnings',
     'LBL_PROCEED' => 'PROCEED',
+    'LBL_PROCEED_WITH_WARNINGS' => 'IGNORE WARNINGS AND PROCEED',
+    'LBL_PROCEED_WITH_ERRORS' => 'IGNORE ERRORS AND PROCEED',
+    'LBL_PROCEED_WITH_ERRORS_AND_WARNINGS' => 'IGNORE ERRORS AND WARNINGS TO PROCEED',
     'LBL_RECHECK' => 'RECHECK',
+    'LBL_VIEW_FULL_ERROR' => 'View Full Error',
+    'LBL_CLOSE_DESCRIPTION' => 'Close Description',
     'LBL_CONFIG' => 'CONFIGURATION',
     'LBL_VALIDATION_ERRORS' => 'There are validation errors, unable to perform action.'
 );

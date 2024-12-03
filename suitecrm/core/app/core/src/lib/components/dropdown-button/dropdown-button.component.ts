@@ -36,6 +36,7 @@ import {
 import {NgbDropdown} from '@ng-bootstrap/ng-bootstrap';
 import {PlacementArray} from '@ng-bootstrap/ng-bootstrap/util/positioning';
 import {LanguageStore} from '../../store/language/language.store';
+import {SystemConfigStore} from "../../store/system-config/system-config.store";
 
 
 @Component({
@@ -49,12 +50,19 @@ export class DropdownButtonComponent implements OnInit {
     @Input() disabled = false;
     @Input() autoClose: boolean | 'outside' | 'inside' = true;
 
-    buttons: any[] = [];
     sections: DropdownButtonSection[] = [];
     sectionsEnabled: boolean = false;
 
-    constructor(public language: LanguageStore) {
+    charSize = {
+        minLength: 20,
+        mediumLength: 20,
+        maxLength: 20
     }
+
+    constructor(
+        public language: LanguageStore,
+        protected systemConfigStore: SystemConfigStore
+    ) {}
 
     isDropdown(item: ButtonInterface): boolean {
         if (!item) {
@@ -82,13 +90,14 @@ export class DropdownButtonComponent implements OnInit {
         const sectionsConfig: DropdownButtonSectionMap = this.config?.sections ?? {};
 
         if (emptyObject(sectionsConfig)) {
-            this.buttons = [...this.config?.items ?? []];
             this.sectionsEnabled = false;
             return;
         }
         this.sectionsEnabled = true;
 
         this.preprocessItems(this.config?.items ?? []);
+        const characterSizes = this.systemConfigStore.getUi('navbar_truncate_character_sizes');
+        this.charSize = {...characterSizes}
     }
 
     preprocessItems(items: any[]): void {

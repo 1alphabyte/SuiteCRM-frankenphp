@@ -43,23 +43,28 @@ final class XmlFile extends ConfigurationFile
         if (isset($config['all_or_nothing'])) {
             $config['all_or_nothing'] = BooleanStringFormatter::toBoolean(
                 $config['all_or_nothing'],
-                false
+                false,
+            );
+        }
+
+        if (isset($config['transactional'])) {
+            $config['transactional'] = BooleanStringFormatter::toBoolean(
+                $config['transactional'],
+                true,
             );
         }
 
         if (isset($config['migrations_paths'])) {
             $config['migrations_paths'] = $this->getDirectoriesRelativeToFile(
                 $config['migrations_paths'],
-                $this->file
+                $this->file,
             );
         }
 
         return (new ConfigurationArray($config))->getConfiguration();
     }
 
-    /**
-     * @return mixed[]
-     */
+    /** @return mixed[] */
     private function extractParameters(SimpleXMLElement $root, bool $loopOverNodes): array
     {
         $config = [];
@@ -74,22 +79,30 @@ final class XmlFile extends ConfigurationFile
             $nodeName = strtr($node->getName(), '-', '_');
             if ($nodeName === 'migrations_paths') {
                 $config['migrations_paths'] = [];
-                foreach ($node->{'path'} as $pathNode) {
+                foreach ($node->path as $pathNode) {
                     $config['migrations_paths'][(string) $pathNode['namespace']] = (string) $pathNode;
                 }
             } elseif ($nodeName === 'storage' && $node->{'table-storage'} instanceof SimpleXMLElement) {
                 $config['table_storage'] = $this->extractParameters($node->{'table-storage'}, false);
             } elseif ($nodeName === 'migrations') {
-                $config['migrations'] = [];
-                foreach ($node->{'migration'} as $pathNode) {
-                    $config['migrations'][] = (string) $pathNode;
-                }
+                $config['migrations'] = $this->extractMigrations($node);
             } else {
                 $config[$nodeName] = (string) $node;
             }
         }
 
         return $config;
+    }
+
+    /** @return list<string> */
+    private function extractMigrations(SimpleXMLElement $node): array
+    {
+        $migrations = [];
+        foreach ($node->migration as $pathNode) {
+            $migrations[] = (string) $pathNode;
+        }
+
+        return $migrations;
     }
 
     private function validateXml(string $file): void

@@ -29,15 +29,16 @@
 namespace App\Authentication\Controller;
 
 use App\Authentication\LegacyHandler\Authentication;
-use Exception;
+use App\Module\Users\Entity\User;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
-use Symfony\Component\Security\Core\Security;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 /**
@@ -52,28 +53,23 @@ class SecurityController extends AbstractController
     private $authentication;
 
     /**
-     * @var SessionInterface
+     * @var RequestStack
      */
-    private $session;
+    private $requestStack;
 
     /**
      * SecurityController constructor.
      * @param Authentication $authentication
-     * @param SessionInterface $session
+     * @param RequestStack $requestStack
      */
-    public function __construct(Authentication $authentication, SessionInterface $session)
+    public function __construct(Authentication $authentication, RequestStack $requestStack)
     {
         $this->authentication = $authentication;
-        $this->session = $session;
+        $this->requestStack = $requestStack;
     }
 
-    /**
-     * @Route("/login", name="app_login", methods={"GET", "POST"})
-     * @param AuthenticationUtils $authenticationUtils
-     * @param Security $security
-     * @return JsonResponse
-     */
-    public function login(AuthenticationUtils $authenticationUtils, Security $security): JsonResponse
+    #[Route('/login', name: 'app_login', methods: ["GET", "POST"])]
+    public function login(AuthenticationUtils $authenticationUtils, #[CurrentUser] ?User $user): JsonResponse
     {
         $error = $authenticationUtils->getLastAuthenticationError();
         $isAppInstalled = $this->authentication->getAppInstallStatus();
@@ -84,10 +80,18 @@ class SecurityController extends AbstractController
         ];
 
         if ($error) {
-            return new JsonResponse(['active' => false], Response::HTTP_UNAUTHORIZED);
+            return $this->json([
+                'active' => false,
+                'message' => 'missing credentials'
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
-        $user = $security->getUser();
+        if (null === $user) {
+            return $this->json([
+                'active' => false,
+                'message' => 'missing credentials',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
 
         $data = $this->getResponseData($user, $appStatus);
 
@@ -96,23 +100,18 @@ class SecurityController extends AbstractController
             $data['redirect'] = $needsRedirect;
         }
 
-        return new JsonResponse($data, Response::HTTP_OK);
+        $data['user'] = $user->getUserIdentifier();
+
+        return $this->json($data, Response::HTTP_OK);
     }
 
-    /**
-     * @Route("/logout", name="app_logout", methods={"GET", "POST"})
-     * @throws Exception
-     */
+    #[Route('/logout', name: 'app_logout', methods: ["GET", "POST"])]
     public function logout(): void
     {
         throw new RuntimeException('This will be intercepted by the logout key');
     }
 
-    /**
-     * @Route("/session-status", name="app_session_status", methods={"GET"})
-     * @param Security $security
-     * @return JsonResponse
-     */
+    #[Route('/session-status', name: 'app_session_status', methods: ["GET"])]
     public function sessionStatus(Security $security): JsonResponse
     {
         $isAppInstalled = $this->authentication->getAppInstallStatus();
@@ -125,8 +124,8 @@ class SecurityController extends AbstractController
         if (!$isAppInstalled) {
             $response = new JsonResponse(['appStatus' => $appStatus], Response::HTTP_OK);
             $response->headers->clearCookie('XSRF-TOKEN');
-            $this->session->invalidate();
-            $this->session->start();
+            $this->requestStack->getSession()->invalidate();
+            $this->requestStack->getSession()->start();
 
             return $response;
         }
@@ -135,8 +134,8 @@ class SecurityController extends AbstractController
 
         if ($isActive !== true) {
             $response = new JsonResponse(['active' => false, 'appStatus' => $appStatus], Response::HTTP_OK);
-            $this->session->invalidate();
-            $this->session->start();
+            $this->requestStack->getSession()->invalidate();
+            $this->requestStack->getSession()->start();
             $this->authentication->initLegacySystemSession();
 
             return $response;
@@ -145,41 +144,46 @@ class SecurityController extends AbstractController
         $user = $security->getUser();
         if ($user === null) {
             $response = new JsonResponse(['active' => false, 'appStatus' => $appStatus], Response::HTTP_OK);
-            $this->session->invalidate();
-            $this->session->start();
+            $this->requestStack->getSession()->invalidate();
+            $this->requestStack->getSession()->start();
+
+            return $response;
+        }
+
+        $isUserActive = $this->authentication->isUserActive();
+        if ($isUserActive !== true) {
+            $response = new JsonResponse(['active' => false, 'appStatus' => $appStatus], Response::HTTP_OK);
+            $this->requestStack->getSession()->invalidate();
+            $this->requestStack->getSession()->start();
 
             return $response;
         }
 
         $data = $this->getResponseData($user, $appStatus);
 
+        if (!isset($data['redirect'])){
+            $needsRedirect = $this->authentication->needsRedirect($user);
+            if (!empty($needsRedirect)) {
+                $data['redirect'] = $needsRedirect;
+            }
+        }
+
         return new JsonResponse($data, Response::HTTP_OK);
     }
 
-    /**
-     * @Route("/auth/login", name="native_auth_login", methods={"GET", "POST"})
-     * @param AuthenticationUtils $authenticationUtils
-     * @return JsonResponse
-     */
-    public function nativeAuthLogin(AuthenticationUtils $authenticationUtils, Security $security): JsonResponse
+    #[Route('/auth/login', name: 'native_auth_login', methods: ["GET", "POST"])]
+    public function nativeAuthLogin(AuthenticationUtils $authenticationUtils, #[CurrentUser] ?User $user): JsonResponse
     {
-        return $this->login($authenticationUtils, $security);
+        return $this->login($authenticationUtils, $user);
     }
 
-    /**
-     * @Route("/auth/logout", name="native_auth_logout", methods={"GET", "POST"})
-     * @throws Exception
-     */
+    #[Route('/auth/logout', name: 'native_auth_logout', methods: ["GET", "POST"])]
     public function nativeAuthLogout(): void
     {
         $this->logout();
     }
 
-    /**
-     * @Route("/auth/session-status", name="native_auth_session_status", methods={"GET"})
-     * @param Security $security
-     * @return JsonResponse
-     */
+    #[Route('/auth/session-status', name: 'native_auth_session_status', methods: ["GET"])]
     public function nativeAuthSessionStatus(Security $security): JsonResponse
     {
         return $this->sessionStatus($security);

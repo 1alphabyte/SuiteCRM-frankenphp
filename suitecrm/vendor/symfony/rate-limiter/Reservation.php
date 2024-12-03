@@ -13,13 +13,11 @@ namespace Symfony\Component\RateLimiter;
 
 /**
  * @author Wouter de Jong <wouter@wouterj.nl>
- *
- * @experimental in 5.2
  */
 final class Reservation
 {
-    private $timeToAct;
-    private $rateLimit;
+    private float $timeToAct;
+    private RateLimit $rateLimit;
 
     /**
      * @param float $timeToAct Unix timestamp in seconds when this reservation should act
@@ -47,6 +45,6 @@ final class Reservation
 
     public function wait(): void
     {
-        usleep($this->getWaitDuration() * 1e6);
+        usleep((int) ($this->getWaitDuration() * 1e6));
     }
 }

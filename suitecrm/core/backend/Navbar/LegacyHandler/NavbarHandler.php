@@ -36,7 +36,7 @@ use App\Routes\Service\NavigationProviderInterface;
 use App\Routes\Service\RouteConverterInterface;
 use GroupedTabStructure;
 use SugarView;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Class NavbarHandler
@@ -91,7 +91,7 @@ class NavbarHandler extends LegacyHandler implements NavigationProviderInterface
      * @param ModuleNameMapperInterface $moduleNameMapper
      * @param RouteConverterInterface $routeConverter
      * @param ModuleRegistryInterface $moduleRegistry
-     * @param SessionInterface $session
+     * @param RequestStack $session
      * @param array $moduleRouting
      * @param array $navbarAdministrationOverrides
      * @param array $quickActions
@@ -106,7 +106,7 @@ class NavbarHandler extends LegacyHandler implements NavigationProviderInterface
         ModuleNameMapperInterface $moduleNameMapper,
         RouteConverterInterface $routeConverter,
         ModuleRegistryInterface $moduleRegistry,
-        SessionInterface $session,
+        RequestStack $session,
         array $moduleRouting,
         array $navbarAdministrationOverrides,
         array $quickActions
@@ -399,7 +399,7 @@ class NavbarHandler extends LegacyHandler implements NavigationProviderInterface
 
                 $mappedLink = [
                     'name' => $link[0] ?? '',
-                    'labelKey' => $link[1] ?? '',
+                    'labelKey' => html_entity_decode($link[1] ?? '', ENT_QUOTES),
                     'actionLabelKey' => '',
                     'url' => $path,
                     'icon' => '',

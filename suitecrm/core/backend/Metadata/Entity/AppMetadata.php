@@ -27,134 +27,115 @@
 
 namespace App\Metadata\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\Metadata\DataProvider\AppMetadataStateProvider;
 
-/**
- * @ApiResource(
- *     itemOperations={
- *          "get"={"path"="/app-metadata/{id}"}
- *     },
- *     collectionOperations={
- *     },
- *     graphql={
- *         "item_query",
- *      }
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(
+            uriTemplate: '/app-metadata/{id}',
+            provider: AppMetadataStateProvider::class
+        ),
+    ],
+    graphQlOperations: [
+        new Query(provider: AppMetadataStateProvider::class)
+    ]
+)]
 class AppMetadata
 {
     /**
      * System configs
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The system configs",
-     *         },
-     *     }
-     * )
      */
-    public $systemConfig;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'system configs',
+        ]
+    )]
+    public array $systemConfig;
 
     /**
      * User preferences
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The user preferences",
-     *         },
-     *     }
-     * )
      */
-    public $userPreferences;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'user preferences',
+        ]
+    )]
+    public array $userPreferences;
 
     /**
      * Language strings
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The language strings",
-     *         },
-     *     }
-     * )
      */
-    public $language;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'language',
+        ]
+    )]
+    public array $language;
 
     /**
      * Theme images
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The theme images",
-     *         },
-     *     }
-     * )
      */
-    public $themeImages;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'theme images',
+        ]
+    )]
+    public array $themeImages;
 
     /**
      * Navigation definitions
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The navigation definitions",
-     *         },
-     *     }
-     * )
      */
-    public $navigation;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'the navigation definitions',
+        ]
+    )]
+    public array $navigation;
 
     /**
      * Module metadata
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The module metadata",
-     *         },
-     *     }
-     * )
      */
-    public $moduleMetadata;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The module metadata',
+        ]
+    )]
+    public array $moduleMetadata;
 
     /**
      * Minimal module metadata
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The module metadata",
-     *         },
-     *     }
-     * )
      */
-    public $minimalModuleMetadata;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'the module metadata',
+        ]
+    )]
+    public array $minimalModuleMetadata;
 
     /**
      * Global Recently Viewed Metadata
@@ -176,43 +157,35 @@ class AppMetadata
      * Admin Metadata
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The admin metadata",
-     *         },
-     *     }
-     * )
      */
-    public $adminMetadata;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The admin metadata',
+        ]
+    )]
+    public array $adminMetadata;
 
     /**
      * The module
      *
      * @var string
-     *
-     * @ApiProperty(
-     *     identifier=true,
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="string",
-     *             "description"="The module.",
-     *             "example"="Accounts"
-     *         }
-     *     },
-     *
-     * )
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'the module',
+        ]
+    )]
+    protected string $id;
 
     /**
      * @return string
      */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id ?? '';
     }
 
     /**
@@ -390,6 +363,5 @@ class AppMetadata
     {
         $this->adminMetadata = $adminMetadata;
     }
-
 
 }

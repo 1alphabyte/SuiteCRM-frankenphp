@@ -34,6 +34,7 @@ use App\Languages\LegacyHandler\AppListStringsHandler;
 use App\Languages\LegacyHandler\AppStringsHandler;
 use App\Languages\LegacyHandler\ModStringsHandler;
 use App\Metadata\Entity\AppMetadata;
+use App\Module\LegacyHandler\ModuleRegistryHandler;
 use App\Module\LegacyHandler\RecentlyViewed\RecentlyViewedHandler;
 use App\Module\Service\ModuleNameMapperInterface;
 use App\Navbar\Entity\Navbar;
@@ -134,6 +135,11 @@ class AppMetadataProvider implements AppMetadataProviderInterface
     protected $recentlyViewedHandler;
 
     /**
+     * @var ModuleRegistryHandler $moduleRegistryHandler ;
+     */
+    protected $moduleRegistryHandler;
+
+    /**
      * AppMetadataProvider constructor.
      * @param ModuleNameMapperInterface $moduleNameMapper
      * @param SystemConfigProviderInterface $systemConfigProvider
@@ -150,6 +156,7 @@ class AppMetadataProvider implements AppMetadataProviderInterface
      * @param CacheInterface $cache
      * @param InstallHandler $installHandler
      * @param RecentlyViewedHandler $recentlyViewedHandler
+     * @param ModuleRegistryHandler $moduleRegistryHandler
      */
     public function __construct(
         ModuleNameMapperInterface             $moduleNameMapper,
@@ -167,7 +174,8 @@ class AppMetadataProvider implements AppMetadataProviderInterface
         CacheInterface                        $cache,
         CacheManagerInterface                 $cacheManager,
         InstallHandler                        $installHandler,
-        RecentlyViewedHandler                 $recentlyViewedHandler
+        RecentlyViewedHandler                 $recentlyViewedHandler,
+        ModuleRegistryHandler                 $moduleRegistryHandler,
     )
     {
         $this->moduleNameMapper = $moduleNameMapper;
@@ -186,6 +194,7 @@ class AppMetadataProvider implements AppMetadataProviderInterface
         $this->cacheManager = $cacheManager;
         $this->installHandler = $installHandler;
         $this->recentlyViewedHandler = $recentlyViewedHandler;
+        $this->moduleRegistryHandler = $moduleRegistryHandler;
     }
 
     /**
@@ -219,14 +228,16 @@ class AppMetadataProvider implements AppMetadataProviderInterface
             'app-metadata-language-strings-' . $language,
             'app-metadata-theme-images',
             'app-metadata-navigation-' . $userId,
-            'app-metadata-module-metadata-' . $moduleName . '-' . $userId
+            'app-metadata-module-metadata-' . $moduleName . '-' . $userId,
+            'all-module-metadata-' . $userId
         ];
 
         if (!$this->isInstalled()){
             return $this->getMetadataWithoutCache($metadata, $moduleName, $language, $exposed, $theme);
         }
 
-        $this->cacheManager->checkForCacheUpdate($keys);
+        $modules = $this->getModules($moduleName);
+        $this->cacheManager->checkForCacheUpdate($keys, $modules);
 
         $metadata->setSystemConfig([]);
         if (in_array('systemConfig', $exposed, true)) {
@@ -315,7 +326,7 @@ class AppMetadataProvider implements AppMetadataProviderInterface
         }
 
         $sessionLanguage = $this->userHandler->getSessionLanguage();
-        if (!empty($sessionLanguage)) {
+        if (!empty($sessionLanguage) && empty($prefLanguage)) {
             $language = $sessionLanguage;
         }
 
@@ -682,5 +693,43 @@ class AppMetadataProvider implements AppMetadataProviderInterface
         }
 
         return $metadata;
+    }
+
+    protected function getModules($moduleName = ''): array
+    {
+        $moduleList = $this->moduleRegistryHandler->getModuleList();
+
+        $allModules = [];
+        foreach ($moduleList as $key => $module) {
+            $allModules[] = strtolower($module);
+        }
+
+        $toExclude = [
+            'login' => true,
+            'Login' => true,
+            'home' => true,
+            'calendar' => true,
+        ];
+
+        $modules = ['saved-search'];
+
+        if (!in_array($moduleName, $allModules, true)) {
+            $allModules[] = $moduleName;
+        }
+
+        foreach ($allModules as $module) {
+            if (empty($module)) {
+                continue;
+            }
+            $isToExclude = $toExclude[$module] ?? false;
+            if ($isToExclude) {
+                continue;
+            }
+
+            $modules[] = $module;
+
+        }
+
+        return $modules;
     }
 }

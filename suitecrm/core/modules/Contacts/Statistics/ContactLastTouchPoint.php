@@ -34,7 +34,7 @@ use App\Data\LegacyHandler\PresetDataHandlers\SubpanelDataQueryHandler;
 use App\Engine\LegacyHandler\LegacyScopeState;
 use App\Module\Service\ModuleNameMapperInterface;
 use App\Statistics\Service\StatisticsProviderInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Class ContactLastTouchPoint
@@ -60,7 +60,7 @@ class ContactLastTouchPoint extends SubpanelDataQueryHandler implements Statisti
      * @param string $defaultSessionName
      * @param LegacyScopeState $legacyScopeState
      * @param ModuleNameMapperInterface $moduleNameMapper
-     * @param SessionInterface $session
+     * @param RequestStack $session
      */
     public function __construct(
         string $projectDir,
@@ -69,7 +69,7 @@ class ContactLastTouchPoint extends SubpanelDataQueryHandler implements Statisti
         string $defaultSessionName,
         LegacyScopeState $legacyScopeState,
         ModuleNameMapperInterface $moduleNameMapper,
-        SessionInterface $session
+        RequestStack $session
     ) {
         parent::__construct(
             $projectDir,
@@ -131,13 +131,13 @@ class ContactLastTouchPoint extends SubpanelDataQueryHandler implements Statisti
         $callsResult = $this->fetchRow($innerQuery);
 
 
-        $parts = $queries[5];
+        $parts = $queries[4];
         $parts['select'] = 'SELECT  emails.`date_sent_received` ';
         $parts['order_by'] = ' ORDER BY  emails.`date_sent_received` DESC LIMIT 1';
         $innerQuery = $this->joinQueryParts($parts);
         $emailsResult1 = $this->fetchRow($innerQuery);
 
-        $parts = $queries[6];
+        $parts = $queries[5];
         $parts['select'] = 'SELECT  emails.`date_sent_received` as `emails_date_sent` ';
         $parts['order_by'] = ' ORDER BY  `emails_date_sent` DESC LIMIT 1';
         $innerQuery = $this->joinQueryParts($parts);

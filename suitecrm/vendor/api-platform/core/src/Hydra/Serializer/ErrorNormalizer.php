@@ -14,14 +14,16 @@ declare(strict_types=1);
 namespace ApiPlatform\Hydra\Serializer;
 
 use ApiPlatform\Api\UrlGeneratorInterface;
-use ApiPlatform\Problem\Serializer\ErrorNormalizerTrait;
-use Symfony\Component\Debug\Exception\FlattenException as LegacyFlattenException;
+use ApiPlatform\Serializer\CacheableSupportsMethodInterface;
+use ApiPlatform\State\ApiResource\Error;
 use Symfony\Component\ErrorHandler\Exception\FlattenException;
-use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
+use Symfony\Component\Serializer\Serializer;
 
 /**
- * Converts {@see \Exception} or {@see FlattenException} or {@see LegacyFlattenException} to a Hydra error representation.
+ * Converts {@see \Exception} or {@see FlattenException} to a Hydra error representation.
+ *
+ * @deprecated Errors are resources since API Platform 3.2 we use the ItemNormalizer
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
  * @author Samuel ROZE <samuel.roze@gmail.com>
@@ -32,24 +34,17 @@ final class ErrorNormalizer implements NormalizerInterface, CacheableSupportsMet
 
     public const FORMAT = 'jsonld';
     public const TITLE = 'title';
+    private array $defaultContext = [self::TITLE => 'An error occurred'];
 
-    private $urlGenerator;
-    private $debug;
-    private $defaultContext = [self::TITLE => 'An error occurred'];
-
-    public function __construct(UrlGeneratorInterface $urlGenerator, bool $debug = false, array $defaultContext = [])
+    public function __construct(private readonly UrlGeneratorInterface $urlGenerator, private readonly bool $debug = false, array $defaultContext = [])
     {
-        $this->urlGenerator = $urlGenerator;
-        $this->debug = $debug;
         $this->defaultContext = array_merge($this->defaultContext, $defaultContext);
     }
 
     /**
      * {@inheritdoc}
-     *
-     * @return array|string|int|float|bool|\ArrayObject|null
      */
-    public function normalize($object, $format = null, array $context = [])
+    public function normalize(mixed $object, ?string $format = null, array $context = []): array|string|int|float|bool|\ArrayObject|null
     {
         $data = [
             '@context' => $this->urlGenerator->generate('api_jsonld_context', ['shortName' => 'Error']),
@@ -68,18 +63,39 @@ final class ErrorNormalizer implements NormalizerInterface, CacheableSupportsMet
     /**
      * {@inheritdoc}
      */
-    public function supportsNormalization($data, $format = null, array $context = []): bool
+    public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool
     {
-        return self::FORMAT === $format && ($data instanceof \Exception || $data instanceof FlattenException || $data instanceof LegacyFlattenException);
+        if ($context['api_error_resource'] ?? false) {
+            return false;
+        }
+
+        return self::FORMAT === $format && ($data instanceof \Exception || $data instanceof FlattenException);
     }
 
-    /**
-     * {@inheritdoc}
-     */
+    public function getSupportedTypes($format): array
+    {
+        if (self::FORMAT === $format) {
+            return [
+                \Exception::class => true,
+                Error::class => false,
+                FlattenException::class => true,
+            ];
+        }
+
+        return [];
+    }
+
     public function hasCacheableSupportsMethod(): bool
     {
+        if (method_exists(Serializer::class, 'getSupportedTypes')) {
+            trigger_deprecation(
+                'api-platform/core',
+                '3.1',
+                'The "%s()" method is deprecated, use "getSupportedTypes()" instead.',
+                __METHOD__
+            );
+        }
+
         return true;
     }
 }
-
-class_alias(ErrorNormalizer::class, \ApiPlatform\Core\Hydra\Serializer\ErrorNormalizer::class);

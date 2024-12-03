@@ -41,10 +41,14 @@
   border-radius: 0;
 }
 
+ngb-popover-window.popover {
+  z-index: map-get($zindex, page-low);
+}
+
 ngb-datepicker.dropdown-menu {
   padding: 0;
   background-color: $white;
-  z-index: map-get($zindex, nav-max);
+  z-index: map-get($zindex, page-low);
 }
 
 ngb-datepicker-navigation {
@@ -121,6 +125,10 @@ ngb-datepicker-navigation {
     padding: 0 0.25rem;
   }
 
+  .dropdown-item {
+    padding: 0;
+  }
+
   .new-list-item:first-child {
     border-top: none;
     padding-top: 0.6rem;
@@ -149,7 +157,7 @@ ngb-datepicker-navigation {
 
     .text-title {
       font-size: 0.8em;
-      color: #534D64;
+      color: $midnight-blue;;
       max-width: 13rem;
       overflow: hidden;
       display: inline-block;
@@ -263,7 +271,6 @@ ngb-datepicker-navigation {
 .action-group.navbar-action-group {
   >.dropdown.show {
     background-color: $dusky-blue;
-    cursor: pointer;
 
     .action-link svg,
     .action-link svg path,

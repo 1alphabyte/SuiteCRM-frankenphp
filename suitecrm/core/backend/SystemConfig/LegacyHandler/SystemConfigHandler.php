@@ -40,7 +40,7 @@ use App\Routes\Service\NavigationProviderInterface;
 use App\SystemConfig\Entity\SystemConfig;
 use App\SystemConfig\Service\SystemConfigProviderInterface;
 use Exception;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class SystemConfigHandler extends LegacyHandler implements SystemConfigProviderInterface
 {
@@ -93,19 +93,23 @@ class SystemConfigHandler extends LegacyHandler implements SystemConfigProviderI
      * @param array $systemConfigKeyMap
      * @param array $cacheResetActions
      * @param array $navigationTabLimits
+     * @param array $filterRangeSearchTypes
      * @param array $listViewColumnLimits
      * @param array $listViewSettingsLimits
      * @param array $listViewActionsLimits
      * @param array $recordViewActionLimits
      * @param array $subpanelViewActionLimits
      * @param array $listViewLineActionsLimits
+     * @param array $listViewUrlQueryFilterMapping
      * @param array $uiConfigs
      * @param array $notificationsConfigs
      * @param array $notificationsReloadActions
+     * @param array $globalRecentlyViewedReloadActions
      * @param array $extensions
      * @param array $logoutConfig
      * @param array $sessionExpiredConfig
-     * @param SessionInterface $session
+     * @param array $recordViewConvertIgnore
+     * @param RequestStack $session
      * @param NavigationProviderInterface $navigation
      */
     public function __construct(
@@ -124,6 +128,7 @@ class SystemConfigHandler extends LegacyHandler implements SystemConfigProviderI
         array $systemConfigKeyMap,
         array $cacheResetActions,
         array $navigationTabLimits,
+        array $filterRangeSearchTypes,
         array $listViewColumnLimits,
         array $listViewSettingsLimits,
         array $listViewActionsLimits,
@@ -134,10 +139,12 @@ class SystemConfigHandler extends LegacyHandler implements SystemConfigProviderI
         array $uiConfigs,
         array $notificationsConfigs,
         array $notificationsReloadActions,
+        array $globalRecentlyViewedReloadActions,
         array $extensions,
         array $logoutConfig,
         array $sessionExpiredConfig,
-        SessionInterface $session,
+        array $recordViewConvertIgnore,
+        RequestStack $session,
         NavigationProviderInterface $navigation
     ) {
         parent::__construct(
@@ -156,16 +163,19 @@ class SystemConfigHandler extends LegacyHandler implements SystemConfigProviderI
         $this->injectedSystemConfigs['cache_reset_actions'] = $cacheResetActions;
         $this->injectedSystemConfigs['module_routing'] = $navigation->getModuleRouting();
         $this->injectedSystemConfigs['navigation_tab_limits'] = $navigationTabLimits;
+        $this->injectedSystemConfigs['filter_range_search_types'] = $filterRangeSearchTypes;
         $this->injectedSystemConfigs['listview_column_limits'] = $listViewColumnLimits;
         $this->injectedSystemConfigs['listview_settings_limits'] = $listViewSettingsLimits;
         $this->injectedSystemConfigs['listview_actions_limits'] = $listViewActionsLimits;
         $this->injectedSystemConfigs['recordview_actions_limits'] = $recordViewActionLimits;
+        $this->injectedSystemConfigs['convert_ignore'] = $recordViewConvertIgnore;
         $this->injectedSystemConfigs['subpanelview_actions_limits'] = $subpanelViewActionLimits;
         $this->injectedSystemConfigs['listview_line_actions_limits'] = $listViewLineActionsLimits;
         $this->injectedSystemConfigs['listview_url_query_filter_mapping'] = $listViewUrlQueryFilterMapping;
         $this->injectedSystemConfigs['ui'] = $uiConfigs ?? [];
         $this->injectedSystemConfigs['ui']['notifications'] = $notificationsConfigs ?? [];
         $this->injectedSystemConfigs['ui']['notifications_reload_actions'] = $notificationsReloadActions ?? [];
+        $this->injectedSystemConfigs['ui']['global_recently_viewed_reload_actions'] = $globalRecentlyViewedReloadActions ?? [];
         $this->injectedSystemConfigs['list_max_entries_per_record_thread'] = $uiConfigs['list_max_entries_per_record_thread'] ?? null;
         $this->injectedSystemConfigs['extensions'] = $extensions;
 

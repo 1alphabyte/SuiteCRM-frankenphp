@@ -14,6 +14,7 @@ namespace Symfony\Flex\Command;
 use Composer\Command\BaseCommand;
 use Composer\Downloader\TransportException;
 use Composer\Package\Package;
+use Composer\Util\HttpDownloader;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -31,10 +32,10 @@ class RecipesCommand extends BaseCommand
     /** @var \Symfony\Flex\Flex */
     private $flex;
 
-    private $symfonyLock;
-    private $githubApi;
+    private Lock $symfonyLock;
+    private GithubApi $githubApi;
 
-    public function __construct(/* cannot be type-hinted */ $flex, Lock $symfonyLock, $downloader)
+    public function __construct(/* cannot be type-hinted */ $flex, Lock $symfonyLock, HttpDownloader $downloader)
     {
         $this->flex = $flex;
         $this->symfonyLock = $symfonyLock;
@@ -55,7 +56,7 @@ class RecipesCommand extends BaseCommand
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $installedRepo = $this->getComposer()->getRepositoryManager()->getLocalRepository();
 
@@ -109,7 +110,6 @@ class RecipesCommand extends BaseCommand
 
         $write = [];
         $hasOutdatedRecipes = false;
-        /** @var Recipe $recipe */
         foreach ($recipes as $name => $recipe) {
             $lockRef = $this->symfonyLock->get($name)['recipe']['ref'] ?? null;
 
@@ -226,7 +226,11 @@ class RecipesCommand extends BaseCommand
 
             // show commits since one second after the currently-installed recipe
             if (null !== $commitDate) {
-                $historyUrl .= '?since='.(new \DateTime($commitDate))->modify('+1 seconds')->format('c\Z');
+                $historyUrl .= '?since=';
+                $historyUrl .= (new \DateTime($commitDate))
+                    ->setTimezone(new \DateTimeZone('UTC'))
+                    ->modify('+1 seconds')
+                    ->format('Y-m-d\TH:i:s\Z');
             }
 
             $io->write('<info>recipe history</info>   : '.$historyUrl);

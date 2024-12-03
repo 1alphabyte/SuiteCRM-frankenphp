@@ -30,16 +30,11 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use App\Module\Users\Entity\User;
 use App\Security\Ldap\AppLdapUserProvider;
 use App\Security\Saml\AppSamlAuthenticator;
-use App\Security\UserChecker;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Ldap\Ldap;
+use Symfony\Component\Security\Core\User\InMemoryUserChecker;
 use Symfony\Component\Security\Http\RateLimiter\DefaultLoginRateLimiter;
-
-/** @var $container Container */
-if (!isset($container)) {
-    return;
-}
 
 return static function (ContainerConfigurator $containerConfig) {
 
@@ -74,30 +69,33 @@ return static function (ContainerConfigurator $containerConfig) {
                 new Reference('limiter.ip_login'),
                 // 2nd argument is the limiter for username+IP
                 new Reference('limiter.username_ip_login'),
+                // 3rd argument is the app secret
+                param('kernel.secret'),
             ]
         );
 
     $baseFirewall = [
         'dev' => [
             'pattern' => '^/(_(profiler|wdt)|css|images|js)/',
-            'user_checker' => UserChecker::class,
+            'user_checker' => InMemoryUserChecker::class,
             'security' => false
         ],
         'main' => [
-            'lazy' => true,
+            'lazy' => false,
         ]
     ];
 
     //Note: Only the *first* access control that matches will be used
     $baseAccessControl = [
-        ['path' => '^/login$', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-        ['path' => '^/session-status$', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-        ['path' => '^/logout$', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-        ['path' => '^/logged-out', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-        ['path' => '^/$', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-        ['path' => '^/api', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-        ['path' => '^/api/graphql', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-        ['path' => '^/', 'roles' => 'IS_AUTHENTICATED_FULLY']
+        ['path' => '^/login$', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/session-status$', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/logout$', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/logged-out', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/$', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/api', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/api/graphql', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/api/graphql/graphiql*', 'roles' => 'PUBLIC_ACCESS'],
+        ['path' => '^/', 'roles' => 'PUBLIC_ACCESS']
     ];
 
 
@@ -109,6 +107,7 @@ return static function (ContainerConfigurator $containerConfig) {
 
     $containerConfig->parameters()->set('auth.logout.redirect', false);
     $containerConfig->parameters()->set('auth.logout.path', 'logout');
+    $containerConfig->parameters()->set('auth.logout.after_logout_path', './');
 
     $containerConfig->parameters()->set('auth.session-expired.redirect', false);
     $containerConfig->parameters()->set('auth.session-expired.path', 'Login');
@@ -124,7 +123,7 @@ return static function (ContainerConfigurator $containerConfig) {
                         'limiter' => 'app.login_rate_limiter'
                     ],
                     'logout' => [
-                        'path' => 'app_logout'
+                        'path' => 'app_logout',
                     ],
                 ],
             ]),
@@ -233,7 +232,7 @@ return static function (ContainerConfigurator $containerConfig) {
                 'provider' => 'app_user_provider',
                 // Match SAML attribute 'uid' with username.
                 // Uses getNameId() method by default.
-                'username_attribute' => '%env(SAML_USERNAME_ATTRIBUTE)%',
+                'identifier_attribute' => '%env(SAML_USERNAME_ATTRIBUTE)%',
                 'use_attribute_friendly_name' => '%env(bool:SAML_USE_ATTRIBUTE_FRIENDLY_NAME)%',
                 // Use the attribute's friendlyName instead of the name
                 'check_path' => 'saml_acs',
@@ -251,22 +250,23 @@ return static function (ContainerConfigurator $containerConfig) {
         }
 
         $samlAccessControl = [
-            ['path' => '^/login$', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/session-status$', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/logout$', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/saml/login', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/saml/metadata', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/saml/acs', 'roles' => 'ROLE_USER'],
-            ['path' => '^/saml/logout', 'roles' => 'ROLE_USER'],
-            ['path' => '^/logged-out', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/auth', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/auth/login', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/auth/session-status', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/auth/logout', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
+            ['path' => '^/login$', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/session-status$', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/logout$', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/saml/login', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/saml/metadata', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/saml/acs', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/saml/logout', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/logged-out', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/auth', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/auth/login', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/auth/session-status', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/auth/logout', 'roles' => 'PUBLIC_ACCESS'],
             ['path' => '^/$', 'roles' => 'ROLE_USER'],
-            ['path' => '^/api', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/api/graphql', 'roles' => 'IS_AUTHENTICATED_ANONYMOUSLY'],
-            ['path' => '^/', 'roles' => 'IS_AUTHENTICATED_FULLY']
+            ['path' => '^/api', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/api/graphql', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/api/graphql/graphiql*', 'roles' => 'PUBLIC_ACCESS'],
+            ['path' => '^/', 'roles' => 'PUBLIC_ACCESS']
         ];
 
         if (!$showDocs) {
@@ -292,7 +292,7 @@ return static function (ContainerConfigurator $containerConfig) {
                 'auth' => [
                     'context' => 'app_context',
                     'pattern' => '^/auth',
-                    'lazy' => true,
+                    'lazy' => false,
                     'provider' => 'app_user_provider',
                     'json_login' => [
                         'provider' => 'app_user_provider',
@@ -302,13 +302,13 @@ return static function (ContainerConfigurator $containerConfig) {
                         'limiter' => 'app.login_rate_limiter',
                     ],
                     'logout' => [
-                        'path' => 'native_auth_logout'
+                        'path' => 'logged-out'
                     ]
                 ],
                 'logged-out' => [
                     'context' => 'app_context',
                     'pattern' => '^/logged-out',
-                    'lazy' => true,
+                    'lazy' => false,
                     'provider' => 'app_user_provider',
                     'json_login' => [
                         'provider' => 'app_user_provider',
@@ -328,6 +328,7 @@ return static function (ContainerConfigurator $containerConfig) {
 
         $containerConfig->parameters()->set('auth.logout.redirect', true);
         $containerConfig->parameters()->set('auth.logout.path', 'saml/logout');
+        $containerConfig->parameters()->set('auth.logout.after_logout_path', './auth#logged-out');
 
         $containerConfig->parameters()->set('auth.session-expired.redirect', true);
         $containerConfig->parameters()->set('auth.session-expired.path', 'logged-out');

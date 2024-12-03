@@ -21,6 +21,7 @@ use Symfony\Component\Security\Http\Event\InteractiveLoginEvent;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
+use Symfony\Component\Security\Http\Event\TokenDeauthenticatedEvent;
 use Symfony\Component\Security\Http\SecurityEvents;
 
 /**
@@ -44,16 +45,14 @@ class RegisterGlobalSecurityEventListenersPass implements CompilerPassInterface
         AuthenticationTokenCreatedEvent::class,
         AuthenticationSuccessEvent::class,
         InteractiveLoginEvent::class,
+        TokenDeauthenticatedEvent::class,
 
         // When events are registered by their name
         AuthenticationEvents::AUTHENTICATION_SUCCESS,
         SecurityEvents::INTERACTIVE_LOGIN,
     ];
 
-    /**
-     * {@inheritdoc}
-     */
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if (!$container->has('event_dispatcher') || !$container->hasParameter('security.firewalls')) {
             return;

@@ -18,17 +18,15 @@ use function strpos;
 use function strtoupper;
 use function substr;
 
-/**
- * @internal
- */
+/** @internal */
 final class Tokenizer
 {
     /**
      * Reserved words (for syntax highlighting)
      *
-     * @var string[]
+     * @var list<string>
      */
-    private $reserved = [
+    private array $reserved = [
         'ACCESSIBLE',
         'ACTION',
         'AFTER',
@@ -314,9 +312,9 @@ final class Tokenizer
      * For SQL formatting
      * These keywords will all be on their own line
      *
-     * @var string[]
+     * @var list<string>
      */
-    private $reservedToplevel = [
+    private array $reservedToplevel = [
         'WITH',
         'SELECT',
         'FROM',
@@ -345,8 +343,8 @@ final class Tokenizer
         'WINDOW',
     ];
 
-    /** @var string[] */
-    private $reservedNewline = [
+    /** @var list<string> */
+    private array $reservedNewline = [
         'LEFT OUTER JOIN',
         'RIGHT OUTER JOIN',
         'LEFT JOIN',
@@ -360,8 +358,8 @@ final class Tokenizer
         'EXCLUDE',
     ];
 
-    /** @var string[] */
-    private $functions = [
+    /** @var list<string> */
+    private array $functions = [
         'ABS',
         'ACOS',
         'ADDDATE',
@@ -687,29 +685,21 @@ final class Tokenizer
 
     // Regular expressions for tokenizing
 
-    /** @var string */
-    private $regexBoundaries;
-
-    /** @var string */
-    private $regexReserved;
-
-    /** @var string */
-    private $regexReservedNewline;
-
-    /** @var string */
-    private $regexReservedToplevel;
-
-    /** @var string */
-    private $regexFunction;
+    private readonly string $regexBoundaries;
+    private readonly string $regexReserved;
+    private readonly string $regexReservedNewline;
+    private readonly string $regexReservedToplevel;
+    private readonly string $regexFunction;
 
     /**
      * Punctuation that can be used as a boundary between other tokens
      *
-     * @var string[]
+     * @var list<string>
      */
-    private $boundaries = [
+    private array $boundaries = [
         ',',
         ';',
+        '::', // PostgreSQL cast operator
         ':',
         ')',
         '(',
@@ -736,7 +726,7 @@ final class Tokenizer
     public function __construct()
     {
         // Sort reserved word list from longest word to shortest, 3x faster than usort
-        $reservedMap = array_combine($this->reserved, array_map('strlen', $this->reserved));
+        $reservedMap = array_combine($this->reserved, array_map(strlen(...), $this->reserved));
         assert($reservedMap !== false);
         arsort($reservedMap);
         $this->reserved = array_keys($reservedMap);
@@ -744,19 +734,19 @@ final class Tokenizer
         // Set up regular expressions
         $this->regexBoundaries       = '(' . implode(
             '|',
-            $this->quoteRegex($this->boundaries)
+            $this->quoteRegex($this->boundaries),
         ) . ')';
         $this->regexReserved         = '(' . implode(
             '|',
-            $this->quoteRegex($this->reserved)
+            $this->quoteRegex($this->reserved),
         ) . ')';
         $this->regexReservedToplevel = str_replace(' ', '\\s+', '(' . implode(
             '|',
-            $this->quoteRegex($this->reservedToplevel)
+            $this->quoteRegex($this->reservedToplevel),
         ) . ')');
         $this->regexReservedNewline  = str_replace(' ', '\\s+', '(' . implode(
             '|',
-            $this->quoteRegex($this->reservedNewline)
+            $this->quoteRegex($this->reservedNewline),
         ) . ')');
 
         $this->regexFunction = '(' . implode('|', $this->quoteRegex($this->functions)) . ')';
@@ -815,7 +805,7 @@ final class Tokenizer
      *
      * @return Token An associative array containing the type and value of the token.
      */
-    private function createNextToken(string $string, ?Token $previous = null): Token
+    private function createNextToken(string $string, Token|null $previous = null): Token
     {
         $matches = [];
         // Whitespace
@@ -853,7 +843,7 @@ final class Tokenizer
                 ($string[0] === '`' || $string[0] === '['
                     ? Token::TOKEN_TYPE_BACKTICK_QUOTE
                     : Token::TOKEN_TYPE_QUOTE),
-                $this->getQuotedString($string)
+                $this->getQuotedString($string),
             );
         }
 
@@ -883,7 +873,7 @@ final class Tokenizer
             preg_match(
                 '/^([0-9]+(\.[0-9]+)?|0x[0-9a-fA-F]+|0b[01]+)($|\s|"\'`|' . $this->regexBoundaries . ')/',
                 $string,
-                $matches
+                $matches,
             )
         ) {
             return new Token(Token::TOKEN_TYPE_NUMBER, $matches[1]);
@@ -903,12 +893,12 @@ final class Tokenizer
                 preg_match(
                     '/^(' . $this->regexReservedToplevel . ')($|\s|' . $this->regexBoundaries . ')/',
                     $upper,
-                    $matches
+                    $matches,
                 )
             ) {
                 return new Token(
                     Token::TOKEN_TYPE_RESERVED_TOPLEVEL,
-                    substr($string, 0, strlen($matches[1]))
+                    substr($upper, 0, strlen($matches[1])),
                 );
             }
 
@@ -917,12 +907,12 @@ final class Tokenizer
                 preg_match(
                     '/^(' . $this->regexReservedNewline . ')($|\s|' . $this->regexBoundaries . ')/',
                     $upper,
-                    $matches
+                    $matches,
                 )
             ) {
                 return new Token(
                     Token::TOKEN_TYPE_RESERVED_NEWLINE,
-                    substr($string, 0, strlen($matches[1]))
+                    substr($upper, 0, strlen($matches[1])),
                 );
             }
 
@@ -931,12 +921,12 @@ final class Tokenizer
                 preg_match(
                     '/^(' . $this->regexReserved . ')($|\s|' . $this->regexBoundaries . ')/',
                     $upper,
-                    $matches
+                    $matches,
                 )
             ) {
                 return new Token(
                     Token::TOKEN_TYPE_RESERVED,
-                    substr($string, 0, strlen($matches[1]))
+                    substr($upper, 0, strlen($matches[1])),
                 );
             }
         }
@@ -948,7 +938,7 @@ final class Tokenizer
         if (preg_match('/^(' . $this->regexFunction . '[(]|\s|[)])/', $upper, $matches)) {
             return new Token(
                 Token::TOKEN_TYPE_RESERVED,
-                substr($string, 0, strlen($matches[1]) - 1)
+                substr($upper, 0, strlen($matches[1]) - 1),
             );
         }
 
@@ -967,9 +957,10 @@ final class Tokenizer
      */
     private function quoteRegex(array $strings): array
     {
-        return array_map(static function (string $string): string {
-            return preg_quote($string, '/');
-        }, $strings);
+        return array_map(
+            static fn (string $string): string => preg_quote($string, '/'),
+            $strings,
+        );
     }
 
     private function getQuotedString(string $string): string
@@ -988,7 +979,7 @@ final class Tokenizer
             (("[^"\\\\]*(?:\\\\.[^"\\\\]*)*("|$))+)|
             ((\'[^\'\\\\]*(?:\\\\.[^\'\\\\]*)*(\'|$))+))/sx',
                 $string,
-                $matches
+                $matches,
             )
         ) {
             $ret = $matches[1];

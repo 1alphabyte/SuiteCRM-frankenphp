@@ -24,7 +24,7 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Component, OnDestroy, OnInit} from '@angular/core';
+import {Component, inject, OnDestroy, OnInit} from '@angular/core';
 import {BaseFieldComponent} from './base-field.component';
 import {DataTypeFormatter} from '../../services/formatters/data-type.formatter.service';
 import {RecordManager} from '../../services/record/record.manager';
@@ -37,7 +37,6 @@ import {
     isEditable,
     isTrue,
     LineActionEvent,
-    LineItemsMetadata,
     Record,
     StringMap,
     ViewMode
@@ -47,9 +46,11 @@ import {FieldLogicManager} from '../field-logic/field-logic.manager';
 import {FieldManager} from '../../services/record/field/field.manager';
 import {FieldRegistry} from '../field.registry';
 import {FieldLogicDisplayManager} from '../field-logic-display/field-logic-display.manager';
+import {RecordValidationHandler} from "../../services/record/validation/record-validation.handler";
 
 @Component({template: ''})
 export class BaseLineItemsComponent extends BaseFieldComponent implements OnInit, OnDestroy {
+    protected recordValidationHandler: RecordValidationHandler;
 
     constructor(
         protected typeFormatter: DataTypeFormatter,
@@ -60,11 +61,14 @@ export class BaseLineItemsComponent extends BaseFieldComponent implements OnInit
         protected logicDisplay: FieldLogicDisplayManager
     ) {
         super(typeFormatter, logic, logicDisplay);
+
+        this.recordValidationHandler = inject(RecordValidationHandler);
     }
 
     ngOnInit(): void {
         super.ngOnInit();
         this.initUpdateParentSubscription();
+        this.initItems();
     }
 
     ngOnDestroy(): void {
@@ -90,7 +94,7 @@ export class BaseLineItemsComponent extends BaseFieldComponent implements OnInit
      *
      * @returns {object} Record[]
      */
-    getItems(): Record[] {
+    initItems(): void {
         this.field.items = this.field.items || [];
 
         const items = this.field.items;
@@ -102,8 +106,17 @@ export class BaseLineItemsComponent extends BaseFieldComponent implements OnInit
             const show = !labelOnFirstLine || index <= 0;
             this.setAttributeLabelDisplay(item, show);
         });
+    }
 
-        return this.field.items;
+    initEmptyItem(): void {
+        this.field.items = this.field.items || [];
+
+        const items = this.field.items;
+        const activeItems = items && items.filter(item => !(item && item.attributes && item.attributes.deleted));
+
+        if (['edit', 'create'].includes(this.mode) && !activeItems.length) {
+            this.addEmptyItem();
+        }
     }
 
     /**
@@ -130,6 +143,12 @@ export class BaseLineItemsComponent extends BaseFieldComponent implements OnInit
             index
         );
 
+        const activeItems = this.getActiveItems();
+        const itemCount = activeItems?.length ?? 0;
+        if (itemCount) {
+            this.setAttributeLabelOnItem(0, activeItems);
+        }
+
         this.updateItems(this.field.items);
 
         this.triggerLineActionEvents(LineActionEvent.onLineItemRemove);
@@ -148,6 +167,15 @@ export class BaseLineItemsComponent extends BaseFieldComponent implements OnInit
             this.record,
             this.field
         );
+
+        const activeItems = this.getActiveItems();
+        const itemCount = activeItems?.length ?? 0;
+        if (itemCount) {
+            this.setAttributeLabelOnItem(0, activeItems);
+            this.setAttributeLabelOnItem(itemCount - 1, activeItems);
+        }
+
+        this.recordValidationHandler.initLineItemsValidators(this.field);
 
         this.triggerLineActionEvents(LineActionEvent.onLineItemAdd);
     }
@@ -258,6 +286,26 @@ export class BaseLineItemsComponent extends BaseFieldComponent implements OnInit
      */
     getMessageLabelKey(item: any): string {
         return (item && item.message && item.message.labelKey) || '';
+    }
+
+    /**
+     * Get active items
+     */
+    protected getActiveItems(): Record[] {
+        const items = this?.field?.items ?? [];
+        return items.filter(item => !(item?.attributes?.deleted ?? false));
+    }
+
+    /**
+     * Calculate if items' attribute label should show or hide
+     * @param index on the element
+     * @param items list
+     */
+    protected setAttributeLabelOnItem(index: number, items: Record[]): void {
+        const labelOnFirstLine = !!(this.field?.definition?.lineItems?.labelOnFirstLine ?? false);
+
+        const show = !labelOnFirstLine || (index <= 0);
+        this.setAttributeLabelDisplay(items[index], show);
     }
 
     /**

@@ -28,63 +28,57 @@
 
 namespace App\FieldDefinitions\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\FieldDefinitions\DataProvider\FieldDefinitionStateProvider;
 
-/**
- * @ApiResource(
- *     attributes={"security"="is_granted('ROLE_USER')"},
- *     routePrefix="/vardef",
- *     itemOperations={
- *          "get"
- *     },
- *     graphql={
- *         "item_query",
- *      }
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(security: "is_granted('ROLE_USER')", provider: FieldDefinitionStateProvider::class),
+    ],
+    routePrefix: "/vardef",
+    security: "is_granted('ROLE_USER')",
+    graphQlOperations: [
+        new Query(security: "is_granted('ROLE_USER')", provider: FieldDefinitionStateProvider::class)
+    ]
+)]
 class FieldDefinition
 {
     /**
      * Module vardef metadata
      *
      * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The module metadata",
-     *         },
-     *     }
-     * )
      */
-    public $vardef;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The vardef metadata',
+        ]
+    )]
+    public array $vardef;
+
     /**
      * The module
      *
      * @var string
-     *
-     * @ApiProperty(
-     *     identifier=true,
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="string",
-     *             "description"="The module vardef.",
-     *             "example"="Accounts"
-     *         }
-     *     },
-     *
-     * )
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The module',
+        ]
+    )]
+    protected string $id;
 
     /**
      * @return string
      */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id ?? '';
     }
 
     /**
@@ -101,7 +95,7 @@ class FieldDefinition
      */
     public function getVardef(): ?array
     {
-        return $this->vardef;
+        return $this->vardef ?? null;
     }
 
     /**

@@ -21,34 +21,32 @@ final class Configuration
     public const VERSIONS_ORGANIZATION_BY_YEAR_AND_MONTH = 'year_and_month';
 
     /** @var array<string, string> */
-    private $migrationsDirectories = [];
+    private array $migrationsDirectories = [];
 
     /** @var string[] */
-    private $migrationClasses = [];
+    private array $migrationClasses = [];
 
-    /** @var bool */
-    private $migrationsAreOrganizedByYear = false;
+    private bool $migrationsAreOrganizedByYear = false;
 
-    /** @var bool */
-    private $migrationsAreOrganizedByYearAndMonth = false;
+    private bool $migrationsAreOrganizedByYearAndMonth = false;
 
-    /** @var string|null */
-    private $customTemplate;
+    private string|null $customTemplate = null;
 
-    /** @var bool */
-    private $isDryRun = false;
+    private bool $isDryRun = false;
 
-    /** @var bool */
-    private $allOrNothing = false;
+    private bool $allOrNothing = false;
 
-    /** @var bool */
-    private $checkDbPlatform = true;
+    private bool $transactional = true;
 
-    /** @var MetadataStorageConfiguration */
-    private $metadataStorageConfiguration;
+    private string|null $connectionName = null;
 
-    /** @var bool */
-    private $frozen = false;
+    private string|null $entityManagerName = null;
+
+    private bool $checkDbPlatform = true;
+
+    private MetadataStorageConfiguration|null $metadataStorageConfiguration = null;
+
+    private bool $frozen = false;
 
     public function freeze(): void
     {
@@ -68,9 +66,7 @@ final class Configuration
         $this->metadataStorageConfiguration = $metadataStorageConfiguration;
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     public function getMigrationClasses(): array
     {
         return $this->migrationClasses;
@@ -82,7 +78,7 @@ final class Configuration
         $this->migrationClasses[] = $className;
     }
 
-    public function getMetadataStorageConfiguration(): ?MetadataStorageConfiguration
+    public function getMetadataStorageConfiguration(): MetadataStorageConfiguration|null
     {
         return $this->metadataStorageConfiguration;
     }
@@ -93,21 +89,41 @@ final class Configuration
         $this->migrationsDirectories[$namespace] = $path;
     }
 
-    /**
-     * @return array<string,string>
-     */
+    /** @return array<string,string> */
     public function getMigrationDirectories(): array
     {
         return $this->migrationsDirectories;
     }
 
-    public function setCustomTemplate(?string $customTemplate): void
+    public function getConnectionName(): string|null
+    {
+        return $this->connectionName;
+    }
+
+    public function setConnectionName(string|null $connectionName): void
+    {
+        $this->assertNotFrozen();
+        $this->connectionName = $connectionName;
+    }
+
+    public function getEntityManagerName(): string|null
+    {
+        return $this->entityManagerName;
+    }
+
+    public function setEntityManagerName(string|null $entityManagerName): void
+    {
+        $this->assertNotFrozen();
+        $this->entityManagerName = $entityManagerName;
+    }
+
+    public function setCustomTemplate(string|null $customTemplate): void
     {
         $this->assertNotFrozen();
         $this->customTemplate = $customTemplate;
     }
 
-    public function getCustomTemplate(): ?string
+    public function getCustomTemplate(): string|null
     {
         return $this->customTemplate;
     }
@@ -117,21 +133,17 @@ final class Configuration
         return $this->migrationsAreOrganizedByYear;
     }
 
-    /**
-     * @throws MigrationException
-     */
+    /** @throws MigrationException */
     public function setMigrationsAreOrganizedByYear(
-        bool $migrationsAreOrganizedByYear = true
+        bool $migrationsAreOrganizedByYear = true,
     ): void {
         $this->assertNotFrozen();
         $this->migrationsAreOrganizedByYear = $migrationsAreOrganizedByYear;
     }
 
-    /**
-     * @throws MigrationException
-     */
+    /** @throws MigrationException */
     public function setMigrationsAreOrganizedByYearAndMonth(
-        bool $migrationsAreOrganizedByYearAndMonth = true
+        bool $migrationsAreOrganizedByYearAndMonth = true,
     ): void {
         $this->assertNotFrozen();
         $this->migrationsAreOrganizedByYear         = $migrationsAreOrganizedByYearAndMonth;
@@ -165,6 +177,17 @@ final class Configuration
         return $this->allOrNothing;
     }
 
+    public function setTransactional(bool $transactional): void
+    {
+        $this->assertNotFrozen();
+        $this->transactional = $transactional;
+    }
+
+    public function isTransactional(): bool
+    {
+        return $this->transactional;
+    }
+
     public function setCheckDatabasePlatform(bool $checkDbPlatform): void
     {
         $this->checkDbPlatform = $checkDbPlatform;
@@ -179,18 +202,11 @@ final class Configuration
     {
         $this->assertNotFrozen();
 
-        switch (strtolower($migrationOrganization)) {
-            case self::VERSIONS_ORGANIZATION_NONE:
-                $this->setMigrationsAreOrganizedByYearAndMonth(false);
-                break;
-            case self::VERSIONS_ORGANIZATION_BY_YEAR:
-                $this->setMigrationsAreOrganizedByYear();
-                break;
-            case self::VERSIONS_ORGANIZATION_BY_YEAR_AND_MONTH:
-                $this->setMigrationsAreOrganizedByYearAndMonth();
-                break;
-            default:
-                throw UnknownConfigurationValue::new('organize_migrations', $migrationOrganization);
-        }
+        match (strtolower($migrationOrganization)) {
+            self::VERSIONS_ORGANIZATION_NONE => $this->setMigrationsAreOrganizedByYearAndMonth(false),
+            self::VERSIONS_ORGANIZATION_BY_YEAR => $this->setMigrationsAreOrganizedByYear(),
+            self::VERSIONS_ORGANIZATION_BY_YEAR_AND_MONTH => $this->setMigrationsAreOrganizedByYearAndMonth(),
+            default => throw UnknownConfigurationValue::new('organize_migrations', $migrationOrganization),
+        };
     }
 }

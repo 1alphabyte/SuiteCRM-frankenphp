@@ -34,7 +34,7 @@ use App\Module\Users\Entity\User;
 use App\SystemConfig\Service\SystemConfigProviderInterface;
 use App\UserPreferences\Service\UserPreferencesProviderInterface;
 use SugarBean;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Class UserHandler
@@ -61,7 +61,7 @@ class UserHandler extends LegacyHandler
      * @param string $legacySessionName
      * @param string $defaultSessionName
      * @param LegacyScopeState $legacyScopeState
-     * @param SessionInterface $session
+     * @param RequestStack $session
      * @param SystemConfigProviderInterface $systemConfigProvider
      * @param UserPreferencesProviderInterface $userPreferenceService
      */
@@ -71,7 +71,7 @@ class UserHandler extends LegacyHandler
         string $legacySessionName,
         string $defaultSessionName,
         LegacyScopeState $legacyScopeState,
-        SessionInterface $session,
+        RequestStack $session,
         SystemConfigProviderInterface $systemConfigProvider,
         UserPreferencesProviderInterface $userPreferenceService
     ) {
@@ -130,7 +130,7 @@ class UserHandler extends LegacyHandler
      */
     public function getSessionLanguage(): string
     {
-        return $this->session->get('ui_language', '');
+        return $this->requestStack->getMainRequest()->getSession()->get('ui_language', '');
     }
 
     /**
@@ -142,9 +142,23 @@ class UserHandler extends LegacyHandler
         set_current_language($language);
         $this->close();
 
-        $this->session->set('ui_language', $language);
+        $this->requestStack->getMainRequest()->getSession()->set('ui_language', $language);
     }
 
+    /**
+     * @param $key
+     * @param $value
+     * @param string $category
+     */
+    public function setUserPreference($key, $value, string $category = 'global'): void
+    {
+        $currentUser = $this->getCurrentUser();
+
+        $this->init();
+        $currentUser->setPreference($key, $value, 0,$category);
+
+        $this->close();
+    }
     /**
      * Get system default language
      * @return string
@@ -173,8 +187,34 @@ class UserHandler extends LegacyHandler
         $language = '';
         $languagePreference = $this->userPreferenceService->getUserPreference('global');
         if ($languagePreference !== null && !empty($languagePreference->getItems())) {
-            $language = $languagePreference->getItems()['user_language'] ?? '';
+            $language = $languagePreference->getItems()['language'] ?? '';
         }
+
+        $this->init();
+
+        global $sugar_config;
+
+        $loginLanguage = $this->systemConfigProvider->getSystemConfig('login_language')->getValue() ?? false;
+
+        if (isset($_SESSION['authenticated_user_language']) && isTrue($loginLanguage)) {
+            return $_SESSION['authenticated_user_language'];
+        }
+
+        $languages = get_languages();
+
+        $enabled = false;
+
+        foreach ($languages as $key => $item){
+            if ($language === $key) {
+                $enabled = true;
+            }
+        }
+
+        if (!$enabled){
+            $language = $sugar_config['default_language'];
+        }
+
+        $this->close();
 
         return $language ?? '';
     }

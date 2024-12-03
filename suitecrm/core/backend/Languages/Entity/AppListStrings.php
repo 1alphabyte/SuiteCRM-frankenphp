@@ -26,38 +26,47 @@
  */
 
 
-
 namespace App\Languages\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\Languages\DataProvider\AppListStringsStateProvider;
 
-/**
- * @ApiResource(
- *     attributes={"security"="is_granted('ROLE_USER')"},
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *     },
- *     graphql={
- *         "item_query",
- *     },
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(uriTemplate: '/app-list-strings/{id}', security: "is_granted('ROLE_USER')", provider: AppListStringsStateProvider::class),
+    ],
+    security: "is_granted('ROLE_USER')",
+    graphQlOperations: [
+        new Query(security: "is_granted('ROLE_USER')", provider: AppListStringsStateProvider::class)
+    ]
+)]
 class AppListStrings
 {
     /**
-     * @ApiProperty(identifier=true)
      * @var string|null
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The id',
+        ]
+    )]
+    protected ?string $id;
 
     /**
-     * @ApiProperty
      * @var array|null
      */
-    protected $items;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'items',
+        ]
+    )]
+    protected ?array $items;
 
     /**
      * Get Id
@@ -65,7 +74,7 @@ class AppListStrings
      */
     public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
@@ -86,7 +95,7 @@ class AppListStrings
      */
     public function getItems(): ?array
     {
-        return $this->items;
+        return $this->items ?? null;
     }
 
     /**

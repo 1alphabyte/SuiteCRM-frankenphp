@@ -1,4 +1,13 @@
-# Upgrade to 3.0
+# Upgrade to 3.6
+
+## Console
+- The `--all-or-nothing` option for `migrations:migrate` does not accept a value anymore, and passing it a 
+  value will generate a deprecation. Specifying `--all-or-nothing` will wrap all the migrations to be 
+  executed into a single transaction, regardless of the specified configuration.
+
+
+
+# Upgrade to 3.1
 
 - The "version" is the FQCN of the migration class (existing entries in the migrations table will be automatically updated).
 - `MigrationsEventArgs` and `MigrationsVersionEventArgs` expose different API, 
@@ -13,6 +22,7 @@ please refer to the [Code BC breaks](#code-bc-breaks) section.
   use `migrations:list` instead.
 - The `--write-sql` option for `migrations:migrate` and `migrations:execute` does not imply dry-run anymore,  
 use the `--dry-run` parameter instead.  
+- The `--db` option has been renamed to `--conn`.  
 
 ## Migrations table
 

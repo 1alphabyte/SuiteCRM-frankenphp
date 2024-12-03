@@ -259,6 +259,7 @@ function make_sugar_config(&$sugar_config)
         'default_navigation_paradigm' => empty($navigation_paradigm) ? 'm' : $navigation_paradigm,
         'default_call_status' => 'Planned',
         'js_lang_version' => 1,
+        'login_language' => true,
         'passwordsetting' => empty($passwordsetting) ? array(
             'SystemGeneratedPasswordON' => '',
             'generatepasswordtmpl' => '',
@@ -337,6 +338,7 @@ function get_sugar_config_defaults(): array
         ],
         'export_delimiter' => ',',
         'export_excel_compatible' => false,
+        'enable_record_pagination' => true,
         'cache_dir' => 'cache/',
         'calculate_response_time' => true,
         'create_default_user' => false,
@@ -452,6 +454,7 @@ function get_sugar_config_defaults(): array
         'import_max_records_per_file' => 100,
         'import_max_records_total_limit' => '',
         'languages' => ['en_us' => 'English (US)'],
+        'login_language' => true,
         'large_scale_test' => false,
         'list_max_entries_per_page' => 20,
         'record_modal_pagination_type' => 'pagination',
@@ -1128,13 +1131,10 @@ function showFullName()
     static $showFullName = null;
 
     if (is_null($showFullName)) {
-        $sysPref = !empty($sugar_config['use_real_names']);
         $userPref = (is_object($current_user)) ? $current_user->getPreference('use_real_names') : null;
 
-        if ($userPref != null) {
+        if ($userPref != null && $userPref !== 'off') {
             $showFullName = ($userPref == 'on');
-        } else {
-            $showFullName = $sysPref;
         }
     }
 
@@ -6122,7 +6122,7 @@ function getAppString($key)
 }
 
 function set_session_name(){
-    $sessionName = 'LEGACYSESSID';
+    $sessionName = 'SCRMSESSID';
     if (!empty($GLOBALS['sugar_config']['session_name'])) {
         $sessionName = $GLOBALS['sugar_config']['session_name'];
     }
@@ -6525,6 +6525,23 @@ function isWebToLeadAllowedRedirectHost(string $url): bool {
 
     return false;
 }
+
+/**
+ * Set the proper decimal separator according to the user/system configuration
+ *
+ * @param Decimal $decimalValue
+ * @param Boolean $userSetting. Indicates whether to choose user or system configuration
+ * @return Decimal
+ */
+function formatDecimalInConfigSettings($decimalValue, $userSetting = false) {
+    global $current_user, $sugar_config;
+    if ($userSetting) {
+        $user_dec_sep = (!empty($current_user->id) ? $current_user->getPreference('dec_sep') : null);
+    }
+    $dec_sep = empty($user_dec_sep) ? $sugar_config['default_decimal_seperator'] : $user_dec_sep;
+    return str_replace('.', $dec_sep, $decimalValue);
+}
+
 
 if (!function_exists('endsWith')) {
     function endsWith($str, $end) {

@@ -212,7 +212,85 @@ $viewdefs ['Contacts'] =
                                     'module' => 'AOS_PDF_Templates'
                                 ]
                             ]
-                        ]
+                        ],
+                        'create-portal-user' => [
+                            'key' => 'create-portal-user',
+                            'asyncProcess' => true,
+                            'labelKey' => 'LBL_CREATE_PORTAL_USER',
+                            'modes' => ['detail'],
+                            'acl' => ['view'],
+                            'availability' => ['portal-enabled'],
+                            'displayLogic' => [
+                                'onPortalDisabled' => [
+                                    'modes' => ['detail', 'edit', 'create'],
+                                    'params' => [
+                                        'activeOnFields' =>  [
+                                            'portal_account_disabled' => ['true'],
+                                        ]
+                                    ]
+                                ],
+                                'onCreatedUser' => [
+                                    'modes' => ['detail', 'edit', 'create'],
+                                    'params' => [
+                                        'activeOnFields' =>  [
+                                            'joomla_account_id' => [['operator' => 'not-empty']],
+                                        ]
+                                    ]
+                                ],
+                            ],
+                        ],
+                        'enable-portal-user' => [
+                            'key' => 'enable-portal-user',
+                            'asyncProcess' => true,
+                            'labelKey' => 'LBL_ENABLE_PORTAL_USER',
+                            'modes' => ['detail'],
+                            'acl' => ['view'],
+                            'availability' => ['portal-enabled'],
+                            'displayLogic' => [
+                                'onPortalEnabled' => [
+                                    'modes' => ['detail', 'edit', 'create'],
+                                    'params' => [
+                                        'activeOnFields' =>  [
+                                            'portal_account_disabled' => ['false'],
+                                        ]
+                                    ]
+                                ],
+                                'onJoomlaIDEmpty' => [
+                                    'modes' => ['detail', 'edit', 'create'],
+                                    'params' => [
+                                        'activeOnFields' =>  [
+                                            'joomla_account_id' => [['operator' => 'is-empty']],
+                                        ]
+                                    ]
+                                ],
+                            ]
+                        ],
+                        'disable-portal-user' => [
+                            'key' => 'disable-portal-user',
+                            'asyncProcess' => true,
+                            'labelKey' => 'LBL_DISABLE_PORTAL_USER',
+                            'modes' => ['detail'],
+                            'acl' => ['view'],
+                            'availability' => ['portal-enabled'],
+                            'displayLogic' => [
+                                'onPortalEnabled' => [
+                                    'modes' => ['detail', 'edit', 'create'],
+                                    'params' => [
+                                        'activeOnFields' =>  [
+                                            'portal_account_disabled' => ['true'],
+                                        ]
+                                    ]
+                                ],
+                                'onJoomlaIDEmpty' => [
+                                    'modes' => ['detail', 'edit', 'create'],
+                                    'params' => [
+                                        'activeOnFields' =>  [
+                                            'joomla_account_id' => [['operator' => 'is-empty']],
+                                        ]
+                                    ]
+                                ],
+                            ]
+                        ],
                     ]
                 ],
                 'panels' =>

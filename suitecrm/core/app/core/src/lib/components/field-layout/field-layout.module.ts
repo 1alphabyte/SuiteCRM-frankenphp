@@ -30,6 +30,7 @@ import {FieldLayoutComponent} from './field-layout.component';
 import {FieldModule} from '../../fields/field.module';
 import {FieldGridModule} from '../field-grid/field-grid.module';
 import {ImageModule} from '../image/image.module';
+import {ActionGroupMenuModule} from '../action-group-menu/action-group-menu.module';
 
 
 @NgModule({
@@ -41,7 +42,8 @@ import {ImageModule} from '../image/image.module';
         CommonModule,
         FieldModule,
         FieldGridModule,
-        ImageModule
+        ImageModule,
+        ActionGroupMenuModule
     ]
 })
 export class FieldLayoutModule {

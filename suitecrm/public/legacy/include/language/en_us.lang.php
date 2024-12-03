@@ -1625,6 +1625,7 @@ $app_strings = array(
     'LBL_LOCALE_NAME_EXAMPLE_LAST' => 'Livingstone',
     'LBL_LOCALE_NAME_EXAMPLE_SALUTATION' => 'Dr.',
     'LBL_LOCALE_NAME_EXAMPLE_TITLE' => 'Code Monkey Extraordinaire',
+    'LBL_COPY' => 'Copy',
     'LBL_CANCEL' => 'Cancel',
     'LBL_SNOOZE' => 'Snooze',
     'LBL_SNOOZE_INLINE_CONFIRM' => 'Snooze? ({{preferences.snooze_alert_timer|enum:snooze_alert_timer_simple}})',
@@ -1822,6 +1823,8 @@ $app_strings = array(
     'LBL_VERIFY_EMAIL_ADDRESS' => 'Checking for existing email entry...',
     'LBL_VERIFY_PORTAL_NAME' => 'Checking for existing portal name...',
     'LBL_VIEW_IMAGE' => 'view',
+    'LBL_CREATE_PORTAL_USER_FAILED' => 'Failed to create portal user',
+    'LBL_CREATE_PORTAL_USER_SUCCESS' => 'Created portal user',
 
     'LNK_ABOUT' => 'About',
     'LNK_ADVANCED_FILTER' => 'Advanced Filter',
@@ -1980,6 +1983,8 @@ $app_strings = array(
     'LBL_REMOVE_DASHLET_CONFIRM' => 'Are you sure you want to remove this SuiteCRM Dashlet?',
     'LBL_REMOVING_DASHLET' => 'Removing SuiteCRM Dashlet...',
     'LBL_REMOVED_DASHLET' => 'SuiteCRM Dashlet Removed',
+    'LBL_MAX_DASHLET_COLUMNS' => "Maximum of %s columns can be displayed.",
+    'LBL_RETRIEVING_XML_DATA' => "There was a problem retrieving the XML data:\n",
 
     // MySugar Menu Options
 
@@ -2195,6 +2200,7 @@ $app_strings = array(
     'LBL_SAVE_BUTTON_KEY' => 'a',
     'LBL_SAVE_BUTTON_LABEL' => 'Save',
     'LBL_SAVE_BUTTON_TITLE' => 'Save',
+    'LBL_SAVE_CONTINUE_LABEL' => 'Save And Continue',
     'LBL_CANCEL_BUTTON_KEY' => 'l',
     'LBL_CANCEL_BUTTON_LABEL' => 'Cancel',
     'LBL_CANCEL_BUTTON_TITLE' => 'Cancel',
@@ -3871,9 +3877,9 @@ $app_strings['LBL_VALIDATION_ERROR_EMAIL_FORMAT'] = "Invalid email format. Expec
 $app_strings['LBL_VALIDATION_ERROR_PHONE_FORMAT'] = "Invalid phone format.";
 $app_strings['LBL_VALIDATION_ERROR_MIN'] = "Invalid value. Value must greater or equal to '{{context.min}}'";
 $app_strings['LBL_VALIDATION_ERROR_MAX'] = "Invalid value. Value must smaller or equal to '{{context.max}}'";
-$app_strings['LBL_MULTIPLE_PRIMARY_EMAIL_VALIDATION_ERROR'] = "Only one email address can be marked as primary";
+$app_strings['LBL_MULTIPLE_PRIMARY_EMAIL_VALIDATION_ERROR'] = "Only one Valid Email Address should be marked as primary";
 $app_strings['LBL_DUPLICATE_EMAIL_VALIDATION_ERROR'] = "Duplicate email addresses are not allowed";
-$app_strings['LBL_NO_PRIMARY_EMAIL_VALIDATION_ERROR'] = "One email address should be marked as primary";
+$app_strings['LBL_NO_PRIMARY_EMAIL_VALIDATION_ERROR'] = "One Valid Email Address should be marked as primary";
 $app_strings['LBL_VALIDATION_ERRORS'] = 'There are validation errors, unable to perform action.';
 $app_strings['LBL_LOADING_IN_PROGRESS'] = 'The calculation is currently in progress, please wait a few moments before trying again.';
 $app_strings['LBL_TYPE_TO_SEARCH'] = 'Type to search...';

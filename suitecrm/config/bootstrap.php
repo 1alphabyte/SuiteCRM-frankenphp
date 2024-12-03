@@ -32,7 +32,7 @@ if (!defined('sugarEntry')) {
 
 use Symfony\Component\Dotenv\Dotenv;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 // Load cached env vars if the .env.local.php file exists
 // Run "composer dump-env prod" to create it (requires symfony/flex >=1.2)
@@ -44,16 +44,30 @@ if (is_array($env = @include dirname(__DIR__) . '/.env.local.php') && (!isset($e
     throw new RuntimeException('Please run "composer require symfony/dotenv" to load the ".env" files configuring the application.');
 } else {
     // load all the .env files
-    (new Dotenv(false))->loadEnv(dirname(__DIR__) . '/.env');
+    (new Dotenv('APP_ENV'))->loadEnv(dirname(__DIR__) . '/.env');
 }
-
-// Global annotations to ignore
-Doctrine\Common\Annotations\AnnotationReader::addGlobalIgnoredName('query');
-Doctrine\Common\Annotations\AnnotationReader::addGlobalIgnoredName('fields_array');
-Doctrine\Common\Annotations\AnnotationReader::addGlobalIgnoredName('absrtact');
 
 $_SERVER += $_ENV;
 $_SERVER['APP_ENV'] = $_ENV['APP_ENV'] = ($_SERVER['APP_ENV'] ?? $_ENV['APP_ENV'] ?? null) ?: 'dev';
 $_SERVER['APP_DEBUG'] = $_SERVER['APP_DEBUG'] ?? $_ENV['APP_DEBUG'] ?? 'prod' !== $_SERVER['APP_ENV'];
 $_SERVER['APP_DEBUG'] = $_ENV['APP_DEBUG'] = (int)$_SERVER['APP_DEBUG'] || filter_var($_SERVER['APP_DEBUG'],
     FILTER_VALIDATE_BOOLEAN) ? '1' : '0';
+
+$currentExecutionDirectoryOnBootstrap = getcwd();
+
+// Set working directory for legacy
+chdir(dirname(__DIR__) . '/public/legacy');
+
+if (!file_exists(dirname(__DIR__) . '/public/legacy/config.php')) {
+    global $installing;
+    $installing = true;
+}
+
+// Load in legacy
+/* @noinspection PhpIncludeInspection */
+require_once 'include/MVC/preDispatch.php';
+/* @noinspection PhpIncludeInspection */
+require_once 'include/entryPoint.php';
+
+chdir($currentExecutionDirectoryOnBootstrap);
+unset($currentExecutionDirectoryOnBootstrap);

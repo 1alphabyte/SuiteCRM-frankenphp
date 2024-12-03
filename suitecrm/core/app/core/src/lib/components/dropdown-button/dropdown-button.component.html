@@ -42,7 +42,7 @@
                     [klass]="config.iconKlass || ''"></scrm-image>
 
         <ng-container *ngIf="config.label">
-            {{ config.label }}
+            {{ config.label | truncate: charSize.maxLength}}
         </ng-container>
 
         <ng-container *ngIf="!config.label && config.labelKey">
@@ -72,7 +72,7 @@
         </ng-container>
 
         <ng-container *ngIf="!sectionsEnabled">
-            <ng-container *ngFor="let item of buttons">
+            <ng-container *ngFor="let item of config.items">
                 <ng-container *ngTemplateOutlet="buttonTemplate; context: { item: item }"></ng-container>
             </ng-container>
         </ng-container>
@@ -84,7 +84,10 @@
 <ng-template #buttonTemplate let-item="item">
 
     <ng-container *ngIf="item && !isDropdown(item)">
-        <a ngbDropdownItem [ngClass]="item && item.klass" (click)="item && click(item.onClick, dropDown)">
+        <a ngbDropdownItem
+           [ngClass]="item && item.klass"
+           [title]="(language.getFieldLabel(item?.titleKey) || item?.title) || ''"
+           (click)="item && click(item.onClick, dropDown)">
             <div class="d-flex align-items-center">
                 <div *ngIf="item.icon">
                     <scrm-image [image]="item.icon" [klass]="item.iconKlass || ''"></scrm-image>

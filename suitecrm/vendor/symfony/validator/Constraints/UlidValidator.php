@@ -25,9 +25,9 @@ use Symfony\Component\Validator\Exception\UnexpectedValueException;
 class UlidValidator extends ConstraintValidator
 {
     /**
-     * {@inheritdoc}
+     * @return void
      */
-    public function validate($value, Constraint $constraint)
+    public function validate(mixed $value, Constraint $constraint)
     {
         if (!$constraint instanceof Ulid) {
             throw new UnexpectedTypeException($constraint, Ulid::class);
@@ -37,7 +37,7 @@ class UlidValidator extends ConstraintValidator
             return;
         }
 
-        if (!is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
+        if (!\is_scalar($value) && !$value instanceof \Stringable) {
             throw new UnexpectedValueException($value, 'string');
         }
 
@@ -48,6 +48,8 @@ class UlidValidator extends ConstraintValidator
                 ->setParameter('{{ value }}', $this->formatValue($value))
                 ->setCode(26 > \strlen($value) ? Ulid::TOO_SHORT_ERROR : Ulid::TOO_LONG_ERROR)
                 ->addViolation();
+
+            return;
         }
 
         if (\strlen($value) !== strspn($value, '0123456789ABCDEFGHJKMNPQRSTVWXYZabcdefghjkmnpqrstvwxyz')) {
@@ -55,6 +57,8 @@ class UlidValidator extends ConstraintValidator
                 ->setParameter('{{ value }}', $this->formatValue($value))
                 ->setCode(Ulid::INVALID_CHARACTERS_ERROR)
                 ->addViolation();
+
+            return;
         }
 
         // Largest valid ULID is '7ZZZZZZZZZZZZZZZZZZZZZZZZZ'

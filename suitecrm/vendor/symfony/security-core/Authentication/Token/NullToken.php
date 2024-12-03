@@ -11,6 +11,8 @@
 
 namespace Symfony\Component\Security\Core\Authentication\Token;
 
+use Symfony\Component\Security\Core\User\UserInterface;
+
 /**
  * @author Wouter de Jong <wouter@wouterj.nl>
  */
@@ -26,61 +28,58 @@ class NullToken implements TokenInterface
         return [];
     }
 
-    public function getCredentials()
+    public function getUser(): ?UserInterface
     {
-        return '';
+        return null;
     }
 
-    public function getUser()
-    {
-        return '';
-    }
-
-    public function setUser($user)
+    /**
+     * @return never
+     */
+    public function setUser(UserInterface $user)
     {
         throw new \BadMethodCallException('Cannot set user on a NullToken.');
     }
 
-    public function getUsername()
+    public function getUserIdentifier(): string
     {
         return '';
     }
 
-    public function isAuthenticated()
-    {
-        return true;
-    }
-
-    public function setAuthenticated(bool $isAuthenticated)
-    {
-        throw new \BadMethodCallException('Cannot change authentication state of NullToken.');
-    }
-
+    /**
+     * @return void
+     */
     public function eraseCredentials()
     {
     }
 
-    public function getAttributes()
+    public function getAttributes(): array
     {
         return [];
     }
 
+    /**
+     * @return never
+     */
     public function setAttributes(array $attributes)
     {
         throw new \BadMethodCallException('Cannot set attributes of NullToken.');
     }
 
-    public function hasAttribute(string $name)
+    public function hasAttribute(string $name): bool
     {
         return false;
     }
 
-    public function getAttribute(string $name)
+    public function getAttribute(string $name): mixed
     {
         return null;
     }
 
-    public function setAttribute(string $name, $value)
+    /**
+     * @return never
+     */
+    public function setAttribute(string $name, mixed $value)
     {
         throw new \BadMethodCallException('Cannot add attribute to NullToken.');
     }
@@ -91,21 +90,6 @@ class NullToken implements TokenInterface
     }
 
     public function __unserialize(array $data): void
-    {
-    }
-
-    /**
-     * @return string
-     */
-    public function serialize()
-    {
-        return '';
-    }
-
-    /**
-     * @return void
-     */
-    public function unserialize($serialized)
     {
     }
 }

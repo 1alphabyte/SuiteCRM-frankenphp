@@ -24,7 +24,7 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Component, inject, Input, OnDestroy, OnInit} from '@angular/core';
+import {Component, computed, inject, Input, OnDestroy, OnInit, signal, Signal} from '@angular/core';
 import {FieldComponentInterface} from './field.interface';
 import {AttributeDependency, Field, isVoid, ObjectMap, Record, ViewMode} from 'common';
 import {BehaviorSubject, Observable, Subscription} from 'rxjs';
@@ -62,6 +62,9 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
     protected mode$: Observable<string>;
     protected fieldHandlerRegistry: FieldHandlerRegistry;
 
+    validateOnlyOnSubmit: boolean = false;
+    isInvalid: Signal<boolean> = signal(false);
+
     constructor(
         protected typeFormatter: DataTypeFormatter,
         protected logic: FieldLogicManager,
@@ -92,6 +95,16 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
 
     protected baseInit(): void {
         this.initDependencyHandlers();
+
+        this.validateOnlyOnSubmit = this.record?.metadata?.validateOnlyOnSubmit;
+        if(this.record?.validationTriggered) {
+            this.isInvalid = computed(() => {
+                if(this.record?.metadata?.validateOnlyOnSubmit && this.record?.validationTriggered() && this.field.formControl?.invalid) {
+                    return true;
+                }
+                return false;
+            })
+        }
     }
 
     /**
@@ -116,11 +129,11 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
                     const types = this.dependentFields[fieldKey].type ?? [];
 
                     if (types.includes('logic')) {
-                        this.logic.runLogic(field, this.mode as ViewMode, this.record, 'onFieldInitialize');
+                        this.logic.runLogic(field, this.originalMode as ViewMode, this.record, 'onFieldInitialize');
                     }
 
                     if (types.includes('displayLogic')) {
-                        this.logicDisplay.runAll(field, this.record, this.mode as ViewMode);
+                        this.logicDisplay.runAll(field, this.record, this.originalMode as ViewMode);
                     }
                 });
             }
@@ -138,11 +151,11 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
                             const types = dependentField.type ?? [];
 
                             if (types.includes('logic')) {
-                                this.logic.runLogic(field, this.mode as ViewMode, this.record, 'onValueChange');
+                                this.logic.runLogic(field, this.originalMode as ViewMode, this.record, 'onValueChange');
                             }
 
                             if (types.includes('displayLogic')) {
-                                this.logicDisplay.runAll(field, this.record, this.mode as ViewMode);
+                                this.logicDisplay.runAll(field, this.record, this.originalMode as ViewMode);
                             }
                         }
                     });
@@ -216,7 +229,7 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
                     field: fieldKey,
                     attribute: attributeKey,
                     types: dependentFields[name]['types'] ?? []
-                });
+                } as AttributeDependency);
             }
         });
     }
@@ -254,16 +267,16 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
         attributeKeys.forEach(attributeKey => {
 
             const attribute = field.attributes[attributeKey];
-            if (!attribute || !attribute.attributeDependencies || !attribute.attributeDependencies.length) {
-                return;
-            }
+            if (attribute && attribute.attributeDependencies && attribute.attributeDependencies.length) {
+                const hasDependency = this.isDependencyAttribute(attribute.attributeDependencies);
 
-            if (this.isDependencyAttribute(attribute.attributeDependencies)) {
-                dependentAttributes.push({
-                    field: fieldKey,
-                    attribute: attributeKey,
-                    types: (dependentFields[name] ?? {})['types'] ?? [],
-                });
+                if (hasDependency) {
+                    dependentAttributes.push({
+                        field: fieldKey,
+                        attribute: attributeKey,
+                        types:  (dependentFields[name] ?? {})['types'] ?? []
+                    });
+                }
             }
         });
     }
@@ -310,12 +323,12 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
     }
 
     protected setFormControlValue(newValue: string | string[]): void {
-        this.field.formControl.markAsDirty();
-
         if (isEqual(this.field.formControl.value, newValue)) {
+            this.field.formControl.markAsPristine();
             return;
         }
         this.field.formControl.setValue(newValue);
+        this.field.formControl.markAsDirty();
     }
 
     protected unsubscribeAll(): void {

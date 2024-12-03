@@ -27,160 +27,110 @@
 
 namespace App\ViewDefinitions\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\ViewDefinitions\DataProvider\ViewDefinitionStateProvider;
 
-/**
- * @ApiResource(
- *     attributes={"security"="is_granted('ROLE_USER')"},
- *     routePrefix="/metadata",
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *          "get"
- *     },
- *     graphql={
- *         "item_query",
- *      }
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(security: "is_granted('ROLE_USER')", provider: ViewDefinitionStateProvider::class),
+        new GetCollection(security: "is_granted('ROLE_USER')", provider: ViewDefinitionStateProvider::class)
+    ],
+    routePrefix: '/metadata',
+    security: "is_granted('ROLE_USER')",
+    graphQlOperations: [
+        new Query(security: "is_granted('ROLE_USER')", provider: ViewDefinitionStateProvider::class),
+    ]
+)]
 class ViewDefinition
 {
-    /**
-     * Record View metadata
-     *
-     * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The record-view metadata",
-     *         },
-     *     }
-     * )
-     */
-    public $recordView;
-    /**
-     * Edit View metadata
-     *
-     * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The edit-view metadata",
-     *         },
-     *     }
-     * )
-     */
-    public $editView;
-    /**
-     * List View metadata
-     *
-     * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The list-view metadata",
-     *         },
-     *     }
-     * )
-     */
-    public $listView;
-    /**
-     * Search metadata
-     *
-     * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The search metadata",
-     *         },
-     *     }
-     * )
-     */
-    public $search;
-    /**
-     * Subpanel metadata
-     *
-     * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The subpanel metadata",
-     *         },
-     *     }
-     * )
-     */
-    public $subpanel;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The record-view metadata'
+        ]
+    )]
+    public array $recordView;
 
-    /**
-     * MassUpdate metadata
-     *
-     * @var array
-     *
-     * @ApiProperty(
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="array",
-     *             "description"="The massUpdate metadata",
-     *         },
-     *     }
-     * )
-     */
-    public $massUpdate;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The edit-view metadata'
+        ]
+    )]
+    public array $editView;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The list-view metadata'
+        ]
+    )]
+    public array $listView;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The search metadata'
+        ]
+    )]
+    public array $search;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The subpanel metadata'
+        ]
+    )]
+    public array $subpanel;
+
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The massUpdate metadata'
+        ]
+    )]
+    public array $massUpdate;
 
     /**
      * The module
-     *
-     * @var string
-     *
-     * @ApiProperty(
-     *     identifier=true,
-     *     attributes={
-     *         "openapi_context"={
-     *             "type"="string",
-     *             "description"="The module.",
-     *             "example"="Accounts"
-     *         }
-     *     },
-     *
-     * )
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The module',
+            'example' => 'Accounts'
+        ]
+    )]
+    protected string $id;
 
     /**
      * @return string
      */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id ?? '';
     }
 
     /**
-     * @param string $id
+     * @param string|null $id
      */
-    public function setId($id): void
+    public function setId(?string $id): void
     {
         $this->id = $id;
     }
 
     /**
      * Get Record View metadata
-     * @return array
+     * @return array|null
      */
     public function getRecordView(): ?array
     {
-        return $this->recordView;
+        return $this->recordView ?? null;
     }
 
     /**
@@ -194,11 +144,11 @@ class ViewDefinition
 
     /**
      * Get EditView Metadata
-     * @return array
+     * @return array|null
      */
     public function getEditView(): ?array
     {
-        return $this->editView;
+        return $this->editView ?? null;
     }
 
     /**
@@ -212,11 +162,11 @@ class ViewDefinition
 
     /**
      * Get List View Metadata
-     * @return array
+     * @return array|null
      */
     public function getListView(): ?array
     {
-        return $this->listView;
+        return $this->listView ?? null;
     }
 
     /**
@@ -230,11 +180,11 @@ class ViewDefinition
 
     /**
      * Get Search Metadata
-     * @return array
+     * @return array|null
      */
     public function getSearch(): ?array
     {
-        return $this->search;
+        return $this->search ?? null;
     }
 
     /**
@@ -251,11 +201,11 @@ class ViewDefinition
 
     /**
      * Get Subpanel Metadata
-     * @return array
+     * @return array|null
      */
     public function getSubPanel(): ?array
     {
-        return $this->subpanel;
+        return $this->subpanel ?? null;
     }
 
     /**
@@ -272,11 +222,11 @@ class ViewDefinition
 
     /**
      * Get Mass Update definitions
-     * @return array
+     * @return array|null
      */
     public function getMassUpdate(): ?array
     {
-        return $this->massUpdate;
+        return $this->massUpdate ?? null;
     }
 
     /**

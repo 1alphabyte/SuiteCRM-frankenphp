@@ -27,8 +27,10 @@
 
 namespace App\Install\Command;
 
+use App\Engine\LegacyHandler\DefaultLegacyHandler;
 use App\Engine\Service\ProcessSteps\ProcessStepExecutorInterface;
 use App\Install\Service\Upgrade\UpgradeFinalizeHandlerInterface;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -39,13 +41,9 @@ use Symfony\Component\Console\Question\Question;
  * Class UpgradeFinalizeCommand
  * @package App\Install\Command
  */
+#[AsCommand(name: 'suitecrm:app:upgrade-finalize')]
 class UpgradeFinalizeCommand extends BaseStepExecutorCommand
 {
-    /**
-     * @var string
-     */
-    protected static $defaultName = 'suitecrm:app:upgrade-finalize';
-
     /**
      * @inheritdoc
      */
@@ -59,10 +57,14 @@ class UpgradeFinalizeCommand extends BaseStepExecutorCommand
     /**
      * UpgradeFinalizeCommand constructor.
      * @param UpgradeFinalizeHandlerInterface $handler
+     * @param DefaultLegacyHandler $legacyHandler
      */
-    public function __construct(UpgradeFinalizeHandlerInterface $handler)
-    {
+    public function __construct(
+        UpgradeFinalizeHandlerInterface $handler,
+        DefaultLegacyHandler $legacyHandler
+    ) {
         $this->handler = $handler;
+        $this->legacyHandler = $legacyHandler;
 
         $this->initSession = true;
 
@@ -101,7 +103,7 @@ class UpgradeFinalizeCommand extends BaseStepExecutorCommand
         parent::configure();
 
         $this->setDescription('Finalize the application upgrade')
-            ->setHelp('This command will finalize the upgrade of the SuiteCRM 8 and legacy application');
+             ->setHelp('This command will finalize the upgrade of the SuiteCRM 8 and legacy application');
     }
 
     /**

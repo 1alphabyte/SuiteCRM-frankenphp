@@ -13,8 +13,16 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Api\QueryParameterValidator\Validator;
 
+use ApiPlatform\ParameterValidator\Validator\CheckFilterDeprecationsTrait;
+use ApiPlatform\ParameterValidator\Validator\ValidatorInterface;
+
+/**
+ * @deprecated use \ApiPlatform\ParameterValidator\Validator\Enum instead
+ */
 final class Enum implements ValidatorInterface
 {
+    use CheckFilterDeprecationsTrait;
+
     /**
      * {@inheritdoc}
      */
@@ -25,7 +33,9 @@ final class Enum implements ValidatorInterface
             return [];
         }
 
-        $enum = $filterDescription['swagger']['enum'] ?? null;
+        $this->checkFilterDeprecations($filterDescription);
+
+        $enum = $filterDescription['openapi']['enum'] ?? $filterDescription['swagger']['enum'] ?? null;
 
         if (null !== $enum && !\in_array($value, $enum, true)) {
             return [
@@ -36,5 +46,3 @@ final class Enum implements ValidatorInterface
         return [];
     }
 }
-
-class_alias(Enum::class, \ApiPlatform\Core\Filter\Validator\Enum::class);

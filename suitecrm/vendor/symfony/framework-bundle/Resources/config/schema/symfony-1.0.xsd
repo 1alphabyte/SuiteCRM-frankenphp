@@ -10,6 +10,7 @@
     <xsd:complexType name="config">
         <xsd:choice maxOccurs="unbounded">
             <xsd:element name="assets" type="assets" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="asset-mapper" type="asset_mapper" minOccurs="0" maxOccurs="1" />
             <xsd:element name="form" type="form" minOccurs="0" maxOccurs="1" />
             <xsd:element name="csrf-protection" type="csrf_protection" minOccurs="0" maxOccurs="1" />
             <xsd:element name="esi" type="esi" minOccurs="0" maxOccurs="1" />
@@ -24,23 +25,37 @@
             <xsd:element name="validation" type="validation" minOccurs="0" maxOccurs="1" />
             <xsd:element name="annotations" type="annotations" minOccurs="0" maxOccurs="1" />
             <xsd:element name="property-access" type="property_access" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="scheduler" type="scheduler" minOccurs="0" maxOccurs="1" />
             <xsd:element name="serializer" type="serializer" minOccurs="0" maxOccurs="1" />
             <xsd:element name="property-info" type="property_info" minOccurs="0" maxOccurs="1" />
             <xsd:element name="cache" type="cache" minOccurs="0" maxOccurs="1" />
             <xsd:element name="workflow" type="workflow" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="php-errors" type="php-errors" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="exceptions" type="exceptions" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="exception" type="new-exception" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="lock" type="lock" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="semaphore" type="semaphore" minOccurs="0" maxOccurs="1" />
             <xsd:element name="messenger" type="messenger" minOccurs="0" maxOccurs="1" />
             <xsd:element name="http-client" type="http_client" minOccurs="0" maxOccurs="1" />
             <xsd:element name="mailer" type="mailer" minOccurs="0" maxOccurs="1" />
             <xsd:element name="http-cache" type="http_cache" minOccurs="0" maxOccurs="1" />
             <xsd:element name="rate-limiter" type="rate_limiter" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="uid" type="uid" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="notifier" type="notifier" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="html-sanitizer" type="html-sanitizer" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="enabled-locale" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="webhook" type="webhook" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="remote-event" type="remote-event" minOccurs="0" maxOccurs="1" />
         </xsd:choice>
 
         <xsd:attribute name="http-method-override" type="xsd:boolean" />
+        <xsd:attribute name="handle-all-throwables" type="xsd:boolean" />
+        <xsd:attribute name="trust-x-sendfile-type-header" type="xsd:boolean" />
         <xsd:attribute name="ide" type="xsd:string" />
         <xsd:attribute name="secret" type="xsd:string" />
         <xsd:attribute name="default-locale" type="xsd:string" />
+        <xsd:attribute name="set_locale_from_accept_language" type="xsd:boolean" />
+        <xsd:attribute name="set_content_language_from_locale" type="xsd:boolean" />
         <xsd:attribute name="test" type="xsd:boolean" />
         <xsd:attribute name="error-controller" type="xsd:string" />
         <xsd:attribute name="trusted-hosts" type="xsd:string" />
@@ -85,13 +100,16 @@
 
     <xsd:complexType name="profiler">
         <xsd:attribute name="collect" type="xsd:string" />
+        <xsd:attribute name="collect-parameter" type="xsd:string" />
         <xsd:attribute name="only-exceptions" type="xsd:string" />
+        <xsd:attribute name="only-main-requests" type="xsd:string" />
         <xsd:attribute name="only-master-requests" type="xsd:string" />
         <xsd:attribute name="enabled" type="xsd:string" />
         <xsd:attribute name="dsn" type="xsd:string" />
         <xsd:attribute name="username" type="xsd:string" />
         <xsd:attribute name="password" type="xsd:string" />
         <xsd:attribute name="lifetime" type="xsd:string" />
+        <xsd:attribute name="collect-serializer-data" type="xsd:boolean" />
     </xsd:complexType>
 
     <xsd:complexType name="router">
@@ -102,10 +120,12 @@
         <xsd:attribute name="strict-requirements" type="xsd:string" />
         <xsd:attribute name="utf8" type="xsd:boolean" />
         <xsd:attribute name="default-uri" type="xsd:string" />
+        <xsd:attribute name="cache-dir" type="xsd:string" />
     </xsd:complexType>
 
     <xsd:complexType name="session">
         <xsd:attribute name="enabled" type="xsd:boolean" />
+        <xsd:attribute name="storage-factory-id" type="xsd:string" />
         <xsd:attribute name="storage-id" type="xsd:string" />
         <xsd:attribute name="handler-id" type="xsd:string" />
         <xsd:attribute name="name" type="xsd:string" />
@@ -151,6 +171,7 @@
         <xsd:attribute name="version" type="xsd:string" />
         <xsd:attribute name="version-format" type="xsd:string" />
         <xsd:attribute name="json-manifest-path" type="xsd:string" />
+        <xsd:attribute name="strict-mode" type="xsd:boolean" />
     </xsd:complexType>
 
     <xsd:complexType name="package">
@@ -164,20 +185,60 @@
         <xsd:attribute name="version" type="xsd:string" />
         <xsd:attribute name="version-format" type="xsd:string" />
         <xsd:attribute name="json-manifest-path" type="xsd:string" />
+        <xsd:attribute name="strict-mode" type="xsd:boolean" />
     </xsd:complexType>
+
+    <xsd:complexType name="asset_mapper">
+        <xsd:sequence>
+            <xsd:element name="path" type="asset_mapper_path" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="excluded-pattern" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="extension" type="asset_mapper_extension" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="importmap-script-attribute" type="asset_mapper_attribute" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+        <xsd:attribute name="exclude-dotfiles" type="xsd:boolean" />
+        <xsd:attribute name="server" type="xsd:boolean" />
+        <xsd:attribute name="public-prefix" type="xsd:string" />
+        <xsd:attribute name="missing-import-mode" type="missing-import-mode" />
+        <xsd:attribute name="importmap-path" type="xsd:string" />
+        <xsd:attribute name="importmap-polyfill" type="xsd:string" />
+        <xsd:attribute name="vendor-dir" type="xsd:string" />
+        <xsd:attribute name="provider" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="asset_mapper_path" mixed="true">
+        <xsd:attribute name="namespace" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="asset_mapper_extension" mixed="true">
+        <xsd:attribute name="extension" type="xsd:string" use="required" />
+    </xsd:complexType>
+
+    <xsd:complexType name="asset_mapper_attribute" mixed="true">
+        <xsd:attribute name="key" type="xsd:string" use="required" />
+    </xsd:complexType>
+
+    <xsd:simpleType name="missing-import-mode">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="strict" />
+            <xsd:enumeration value="warn" />
+            <xsd:enumeration value="ignore" />
+        </xsd:restriction>
+    </xsd:simpleType>
 
     <xsd:complexType name="translator">
         <xsd:sequence>
             <xsd:element name="fallback" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="path" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
-            <xsd:element name="enabled-locale" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="pseudo-localization" type="pseudo_localization" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="provider" type="translation_provider" minOccurs="0" maxOccurs="unbounded" />
         </xsd:sequence>
         <xsd:attribute name="enabled" type="xsd:boolean" />
         <xsd:attribute name="fallback" type="xsd:string" />
         <xsd:attribute name="logging" type="xsd:boolean" />
         <xsd:attribute name="formatter" type="xsd:string" />
         <xsd:attribute name="cache-dir" type="xsd:string" />
+        <xsd:attribute name="default-path" type="xsd:string" />
     </xsd:complexType>
 
     <xsd:complexType name="pseudo_localization">
@@ -191,6 +252,15 @@
         <xsd:attribute name="parse_html" type="xsd:boolean" />
     </xsd:complexType>
 
+    <xsd:complexType name="translation_provider">
+        <xsd:sequence>
+            <xsd:element name="domain" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="locale" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" />
+        <xsd:attribute name="dsn" type="xsd:string" />
+    </xsd:complexType>
+
     <xsd:complexType name="validation">
         <xsd:choice minOccurs="0" maxOccurs="unbounded">
             <xsd:element name="static-method" type="xsd:string" />
@@ -201,6 +271,7 @@
         <xsd:attribute name="enabled" type="xsd:boolean" />
         <xsd:attribute name="cache" type="xsd:string" />
         <xsd:attribute name="enable-annotations" type="xsd:boolean" />
+        <xsd:attribute name="enable-attributes" type="xsd:boolean" />
         <xsd:attribute name="static-method" type="xsd:boolean" />
         <xsd:attribute name="translation-domain" type="xsd:string" />
         <xsd:attribute name="strict-email" type="xsd:boolean" />
@@ -243,12 +314,18 @@
         <xsd:attribute name="throw-exception-on-invalid-property-path" type="xsd:boolean" />
     </xsd:complexType>
 
+    <xsd:complexType name="scheduler">
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+    </xsd:complexType>
+
     <xsd:complexType name="serializer">
         <xsd:choice minOccurs="0" maxOccurs="unbounded">
             <xsd:element name="mapping" type="file_mapping" />
+            <xsd:element name="default-context" type="metadata" minOccurs="0" maxOccurs="1" />
         </xsd:choice>
         <xsd:attribute name="enabled" type="xsd:boolean" />
         <xsd:attribute name="enable-annotations" type="xsd:boolean" />
+        <xsd:attribute name="enable-attributes" type="xsd:boolean" />
         <xsd:attribute name="name-converter" type="xsd:string" />
         <xsd:attribute name="circular-reference-handler" type="xsd:string" />
         <xsd:attribute name="max-depth-handler" type="xsd:string" />
@@ -270,7 +347,15 @@
             <xsd:element name="default-pdo-provider" type="xsd:string" minOccurs="0" maxOccurs="1" />
             <xsd:element name="pool" type="cache_pool" minOccurs="0" maxOccurs="unbounded" />
         </xsd:sequence>
-
+        <xsd:attribute name="app" type="xsd:string" />
+        <xsd:attribute name="system" type="xsd:string" />
+        <xsd:attribute name="directory" type="xsd:string" />
+        <xsd:attribute name="default-doctrine-provider" type="xsd:string" />
+        <xsd:attribute name="default-psr6-provider" type="xsd:string" />
+        <xsd:attribute name="default-redis-provider" type="xsd:string" />
+        <xsd:attribute name="default-memcached-provider" type="xsd:string" />
+        <xsd:attribute name="default-pdo-provider" type="xsd:string" />
+        <xsd:attribute name="default-doctrine-dbal-provider" type="xsd:string" />
         <xsd:attribute name="prefix-seed" type="xsd:string" />
     </xsd:complexType>
 
@@ -296,6 +381,7 @@
 
     <xsd:complexType name="workflow">
         <xsd:sequence>
+            <xsd:element name="audit-trail" type="audit_trail" minOccurs="0" maxOccurs="1" />
             <xsd:element name="initial-marking" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="marking-store" type="marking_store" minOccurs="0" maxOccurs="1" />
             <xsd:element name="support" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
@@ -313,8 +399,47 @@
     </xsd:complexType>
 
     <xsd:complexType name="php-errors">
+        <xsd:sequence>
+            <xsd:element name="log" type="logLevel" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
         <xsd:attribute name="log" type="xsd:string" />
         <xsd:attribute name="throw" type="xsd:boolean" />
+    </xsd:complexType>
+
+    <xsd:complexType name="logLevel" mixed="true">
+        <xsd:attribute name="type" type="xsd:string" use="required" />
+        <xsd:attribute name="logLevel" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="audit_trail">
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+    </xsd:complexType>
+
+    <xsd:complexType name="exceptions">
+        <xsd:sequence>
+            <xsd:element name="exception" type="old-exception" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="exception" abstract="true">
+        <xsd:attribute name="log-level" type="xsd:string" />
+        <xsd:attribute name="status-code" type="xsd:integer" />
+    </xsd:complexType>
+
+    <xsd:complexType name="old-exception">
+        <xsd:complexContent>
+            <xsd:extension base="exception">
+                <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+
+    <xsd:complexType name="new-exception">
+        <xsd:complexContent>
+            <xsd:extension base="exception">
+                <xsd:attribute name="class" type="xsd:string" use="required" />
+            </xsd:extension>
+        </xsd:complexContent>
     </xsd:complexType>
 
     <xsd:complexType name="marking_store">
@@ -328,8 +453,6 @@
 
     <xsd:simpleType name="marking_store_type">
         <xsd:restriction base="xsd:string">
-            <xsd:enumeration value="multiple_state" />
-            <xsd:enumeration value="single_state" />
             <xsd:enumeration value="method" />
         </xsd:restriction>
     </xsd:simpleType>
@@ -369,7 +492,7 @@
         </xsd:restriction>
     </xsd:simpleType>
 
-    <xsd:simpleType name="default_middleware">
+    <xsd:simpleType name="default_middleware_attr">
         <xsd:restriction base="xsd:string">
             <xsd:enumeration value="true" />
             <xsd:enumeration value="false" />
@@ -378,6 +501,12 @@
             <xsd:enumeration value="allow_no_handlers" />
         </xsd:restriction>
     </xsd:simpleType>
+
+    <xsd:complexType name="default_middleware_elem">
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+        <xsd:attribute name="allow_no_handlers" type="xsd:boolean" />
+        <xsd:attribute name="allow_no_senders" type="xsd:boolean" />
+    </xsd:complexType>
 
     <xsd:simpleType name="cookie_secure">
         <xsd:restriction base="xsd:string">
@@ -435,6 +564,21 @@
         </xsd:simpleContent>
     </xsd:complexType>
 
+    <xsd:complexType name="semaphore">
+        <xsd:sequence>
+            <xsd:element name="resource" type="semaphore_resource" minOccurs="1" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+    </xsd:complexType>
+
+    <xsd:complexType name="semaphore_resource">
+        <xsd:simpleContent>
+            <xsd:extension base="xsd:string">
+                <xsd:attribute name="name" type="xsd:string" />
+            </xsd:extension>
+        </xsd:simpleContent>
+    </xsd:complexType>
+
     <xsd:complexType name="messenger">
         <xsd:sequence>
             <xsd:element name="serializer" type="messenger_serializer" minOccurs="0" />
@@ -445,6 +589,7 @@
         <xsd:attribute name="default-bus" type="xsd:string" />
         <xsd:attribute name="enabled" type="xsd:boolean" />
         <xsd:attribute name="failure-transport" type="xsd:string" />
+        <xsd:attribute name="reset-on-message" type="xsd:boolean" />
     </xsd:complexType>
 
     <xsd:complexType name="messenger_serializer">
@@ -480,6 +625,8 @@
         <xsd:attribute name="name" type="xsd:string" />
         <xsd:attribute name="serializer" type="xsd:string" />
         <xsd:attribute name="dsn" type="xsd:string" />
+        <xsd:attribute name="failure-transport" type="xsd:string" />
+        <xsd:attribute name="rate-limiter" type="xsd:string" />
     </xsd:complexType>
 
     <xsd:complexType name="messenger_retry_strategy">
@@ -492,10 +639,11 @@
 
     <xsd:complexType name="messenger_bus">
         <xsd:sequence>
+            <xsd:element name="default-middleware" type="default_middleware_elem" minOccurs="0" maxOccurs="unbounded"/>
             <xsd:element name="middleware" type="messenger_middleware" minOccurs="0" maxOccurs="unbounded" />
         </xsd:sequence>
         <xsd:attribute name="name" type="xsd:string" use="required"/>
-        <xsd:attribute name="default-middleware" type="default_middleware"/>
+        <xsd:attribute name="default-middleware" type="default_middleware_attr"/>
     </xsd:complexType>
 
     <xsd:complexType name="messenger_middleware">
@@ -521,6 +669,7 @@
             <xsd:element name="header" type="http_header" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="peer-fingerprint" type="fingerprint" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="retry-failed" type="http_client_retry_failed" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="extra" type="xsd:anyType" minOccurs="0" maxOccurs="unbounded" />
         </xsd:choice>
         <xsd:attribute name="max-redirects" type="xsd:integer" />
         <xsd:attribute name="http-version" type="xsd:string" />
@@ -546,6 +695,7 @@
             <xsd:element name="header" type="http_header" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="peer-fingerprint" type="fingerprint" minOccurs="0" maxOccurs="unbounded" />
             <xsd:element name="retry-failed" type="http_client_retry_failed" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="extra" type="xsd:anyType" minOccurs="0" maxOccurs="unbounded" />
         </xsd:choice>
         <xsd:attribute name="name" type="xsd:string" />
         <xsd:attribute name="scope" type="xsd:string" />
@@ -615,6 +765,7 @@
             <xsd:element name="envelope" type="mailer_envelope" minOccurs="0" maxOccurs="1" />
             <xsd:element name="header" type="header" minOccurs="0" maxOccurs="unbounded" />
         </xsd:sequence>
+        <xsd:attribute name="enabled" type="xsd:boolean" />
         <xsd:attribute name="dsn" type="xsd:string" />
         <xsd:attribute name="message-bus" type="xsd:string" />
     </xsd:complexType>
@@ -630,7 +781,7 @@
     <xsd:complexType name="mailer_envelope">
         <xsd:sequence>
             <xsd:element name="sender" type="xsd:string" minOccurs="0" maxOccurs="1" />
-            <xsd:element name="recipients" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="recipient" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
         </xsd:sequence>
     </xsd:complexType>
 
@@ -648,6 +799,7 @@
         <xsd:attribute name="allow-revalidate" type="xsd:boolean" />
         <xsd:attribute name="stale-while-revalidate" type="xsd:integer" />
         <xsd:attribute name="stale-if-error" type="xsd:integer" />
+        <xsd:attribute name="terminate-on-cache-hit" type="xsd:boolean" />
     </xsd:complexType>
 
     <xsd:simpleType name="http_cache_trace_levels">
@@ -675,7 +827,7 @@
         <xsd:attribute name="lock-factory" type="xsd:string" />
         <xsd:attribute name="storage-service" type="xsd:string" />
         <xsd:attribute name="cache-pool" type="xsd:string" />
-        <xsd:attribute name="strategy" type="xsd:string" />
+        <xsd:attribute name="policy" type="xsd:string" />
         <xsd:attribute name="limit" type="xsd:int" />
         <xsd:attribute name="interval" type="xsd:string" />
     </xsd:complexType>
@@ -683,5 +835,154 @@
     <xsd:complexType name="rate_limiter_rate">
         <xsd:attribute name="interval" type="xsd:string" />
         <xsd:attribute name="amount" type="xsd:int" />
+    </xsd:complexType>
+
+    <xsd:complexType name="uid">
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+        <xsd:attribute name="default_uuid_version" type="default_uuid_version" />
+        <xsd:attribute name="name_based_uuid_version" type="name_based_uuid_version" />
+        <xsd:attribute name="time_based_uuid_version" type="time_based_uuid_version" />
+        <xsd:attribute name="name_based_uuid_namespace" type="xsd:string" />
+        <xsd:attribute name="time_based_uuid_node" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:simpleType name="default_uuid_version">
+        <xsd:restriction base="xsd:int">
+            <xsd:enumeration value="6" />
+            <xsd:enumeration value="4" />
+            <xsd:enumeration value="1" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="name_based_uuid_version">
+        <xsd:restriction base="xsd:int">
+            <xsd:enumeration value="5" />
+            <xsd:enumeration value="3" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="time_based_uuid_version">
+        <xsd:restriction base="xsd:int">
+            <xsd:enumeration value="6" />
+            <xsd:enumeration value="1" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:complexType name="notifier">
+        <xsd:sequence>
+            <xsd:element name="chatter-transport" type="chatter-transport" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="texter-transport" type="texter-transport" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="channel-policy" type="channel-policy" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="admin-recipients" type="admin-recipients" minOccurs="0" maxOccurs="1" />
+        </xsd:sequence>
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+        <xsd:attribute name="notification-on-failed-messages" type="xsd:boolean" />
+        <xsd:attribute name="message-bus" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="chatter-transport" mixed="true">
+        <xsd:attribute name="name" type="xsd:string" use="required"/>
+    </xsd:complexType>
+
+    <xsd:complexType name="texter-transport" mixed="true">
+        <xsd:attribute name="name" type="xsd:string" use="required"/>
+    </xsd:complexType>
+
+    <xsd:complexType name="channel-policy" mixed="true">
+        <xsd:sequence>
+            <xsd:element name="channel" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" use="required" />
+    </xsd:complexType>
+
+    <xsd:complexType name="admin-recipients" mixed="true">
+        <xsd:sequence>
+            <xsd:element name="admin-recipient" type="admin-recipient" minOccurs="1" maxOccurs="unbounded" />
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="admin-recipient" mixed="true">
+        <xsd:attribute name="email" type="xsd:string" use="required" />
+        <xsd:attribute name="phone" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="html-sanitizer">
+        <xsd:sequence>
+            <xsd:element name="sanitizer" type="sanitizer" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+    </xsd:complexType>
+
+    <xsd:complexType name="sanitizer">
+        <xsd:sequence>
+            <xsd:element name="allow-element" type="element-option" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="block-element" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="drop-element" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="allow-attribute" type="attribute-option" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="drop-attribute" type="attribute-option" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="force-attribute" type="force-attribute" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="allowed-link-scheme" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="allowed-link-host" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="allowed-media-scheme" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="allowed-media-host" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="with-attribute-sanitizer" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="without-attribute-sanitizer" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" use="required" />
+        <xsd:attribute name="allow-safe-elements" type="xsd:boolean" />
+        <xsd:attribute name="allow-static-elements" type="xsd:boolean" />
+        <xsd:attribute name="force-https-urls" type="xsd:boolean" />
+        <xsd:attribute name="allow-relative-links" type="xsd:boolean" />
+        <xsd:attribute name="allow-relative-medias" type="xsd:boolean" />
+        <xsd:attribute name="max-input-length" type="xsd:positiveInteger" />
+    </xsd:complexType>
+
+    <xsd:complexType name="element-option">
+        <xsd:sequence>
+            <xsd:element name="attribute" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" use="required" />
+    </xsd:complexType>
+
+    <xsd:complexType name="attribute-option">
+        <xsd:sequence>
+            <xsd:element name="element" type="xsd:string" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" use="required" />
+    </xsd:complexType>
+
+    <xsd:complexType name="force-attribute">
+        <xsd:sequence>
+            <xsd:element name="attribute" minOccurs="0" maxOccurs="unbounded">
+                <xsd:complexType>
+                    <xsd:simpleContent>
+                        <xsd:extension base="xsd:string">
+                            <xsd:attribute name="name" type="xsd:string" use="required"/>
+                        </xsd:extension>
+                    </xsd:simpleContent>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" use="required" />
+    </xsd:complexType>
+
+    <xsd:complexType name="webhook">
+        <xsd:sequence>
+            <xsd:element name="routing" type="webhook_routing" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="enabled" type="xsd:boolean" />
+        <xsd:attribute name="message-bus" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="webhook_routing" mixed="true">
+        <xsd:sequence>
+            <xsd:element name="service" type="xsd:string" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="secret" type="xsd:string" minOccurs="0" maxOccurs="1" />
+        </xsd:sequence>
+        <xsd:attribute name="type" type="xsd:string" use="required" />
+    </xsd:complexType>
+
+    <xsd:complexType name="remote-event">
+        <xsd:attribute name="enabled" type="xsd:boolean" />
     </xsd:complexType>
 </xsd:schema>

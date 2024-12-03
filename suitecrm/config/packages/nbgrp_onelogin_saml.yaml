@@ -1,0 +1,66 @@
+nbgrp_onelogin_saml:
+  onelogin_settings:
+    default:
+      # Mandatory SAML settings
+      idp:
+        entityId: '%env(SAML_IDP_ENTITY_ID)%'
+        singleSignOnService:
+          url: '%env(SAML_IDP_SSO_URL)%'
+          binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        singleLogoutService:
+          url: '%env(SAML_IDP_SLO_URL)%'
+          binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        x509cert: '%env(SAML_IDP_X509CERT)%'
+      sp:
+        entityId: '%env(string:default:site.url:SAML_SP_ENTITY_ID)%'  #  Default: '<request_scheme_and_host>/saml/metadata'
+        assertionConsumerService:
+          url: '%env(SITE_URL)%/saml/acs'  #  Default: '<request_scheme_and_host>/saml/acs'
+          binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
+        singleLogoutService:
+          url: '%env(SITE_URL)%/saml/logout'  #  Default: '<request_scheme_and_host>/saml/logout'
+          binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        privateKey: '%env(SAML_SP_PRIVATE_KEY)%'
+        x509cert: '%env(SAML_SP_CERT)%'
+      # Optional SAML settings
+      baseurl: '%env(SITE_URL)%/saml'  #  Default: '<request_scheme_and_host>/saml/'
+      strict: '%env(bool:SAML_STRICT)%'
+      debug: '%env(bool:SAML_DEBUG)%'
+      security:
+        nameIdEncrypted: '%env(bool:SAML_NAME_ID_ENCRYPTED)%'
+        authnRequestsSigned: '%env(bool:SAML_AUTHN_REQUESTS_SIGNED)%'
+        logoutRequestSigned: '%env(bool:SAML_LOGOUT_REQUEST_SIGNED)%'
+        logoutResponseSigned: '%env(bool:SAML_LOGOUT_RESPONSE_SIGNED)%'
+        signMetadata: '%env(bool:SAML_SIGN_METADATA)%'
+        wantMessagesSigned: '%env(bool:SAML_WANT_MESSAGES_SIGNED)%'
+        wantAssertionsEncrypted: '%env(bool:SAML_WANT_ASSERTIONS_ENCRYPTED)%'
+        wantAssertionsSigned: '%env(bool:SAML_WANT_ASSERTIONS_SIGNED)%'
+        wantNameId: '%env(bool:SAML_WANT_NAME_ID)%'
+        wantNameIdEncrypted: '%env(bool:SAML_WANT_NAME_ID_ENCRYPTED)%'
+        requestedAuthnContext: '%env(bool:SAML_REQUESTED_AUTHN_CONTEXT)%'
+        wantXMLValidation: '%env(bool:SAML_WANT_XML_VALIDATION)%'
+        relaxDestinationValidation: '%env(bool:SAML_RELAX_DESTINATION_VALIDATION)%'
+        destinationStrictlyMatches: '%env(bool:SAML_DESTINATION_STRICTLY_MATCHES)%'
+        allowRepeatAttributeName: '%env(bool:SAML_ALLOW_REPEAT_ATTRIBUTE_NAME)%'
+        rejectUnsolicitedResponsesWithInResponseTo: '%env(bool:SAML_REJECT_UNSOLICITED_RESPONSES_WITH_IN_RESPONSE_TO)%'
+        signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+        digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256'
+        encryption_algorithm: 'http://www.w3.org/2001/04/xmlenc#aes256-cbc'
+        lowercaseUrlencoding: '%env(bool:SAML_LOWERCASE_URL_ENCODING)%'
+      contactPerson:
+        technical:
+          givenName: '%env(SAML_CONTACT_TECHNICAL_GIVEN_NAME)%'
+          emailAddress: '%env(SAML_CONTACT_TECHNICAL_EMAIL_ADDRESS)%'
+        support:
+          givenName: '%env(SAML_CONTACT_SUPPORT_GIVEN_NAME)%'
+          emailAddress: '%env(SAML_CONTACT_SUPPORT_EMAIL_ADDRESS)%'
+        administrative:
+          givenName: '%env(SAML_CONTACT_ADMINISTRATIVE_GIVEN_NAME)%'
+          emailAddress: '%env(SAML_CONTACT_ADMINISTRATIVE_EMAIL_ADDRESS)%'
+      organization:
+        en-US:
+          name: '%env(SAML_ORGANIZATION_NAME)%'
+          displayname: '%env(SAML_ORGANIZATION_DISPLAY_NAME)%'
+          url: '%env(SAML_ORGANIZATION_URL)%'
+      compress:
+        requests: '%env(bool:SAML_COMPRESS_REQUESTS)%'
+        responses: '%env(bool:SAML_COMPRESS_RESPONSES)%'

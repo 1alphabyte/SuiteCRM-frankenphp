@@ -936,7 +936,24 @@ class SugarBean
                         email_addr_bean_rel.bean_id = $relatedBeanTable.id AND
                         email_addr_bean_rel.bean_module = '$relatedBeanModule') as $order_by";
                 }
-
+                // Changed to fix https://github.com/salesagility/SuiteCRM-Core/issues/168#issuecomment-1309063873
+                // Bug: No emails shown in Email column, Contact subpabel, Accounts module.
+                elseif (isset($subpanel_def->panel_definition['list_fields']['email1']['widget_class']) &&
+                    $subpanel_def->panel_definition['list_fields']['email1']['widget_class'] === 'SubPanelEmailLink' &&
+                    !array_key_exists('email1', $subquery['query_fields'])) {
+                    $relatedBeanTable = $subpanel_def->table_name;
+                    $relatedBeanModule = $subpanel_def->get_module_name();
+                    $subquery['select'] .= ",
+                    (SELECT email_addresses.email_address
+                    FROM email_addr_bean_rel
+                    JOIN email_addresses ON email_addresses.id = email_addr_bean_rel.email_address_id
+                    WHERE
+                        email_addr_bean_rel.primary_address = 1 AND
+                        email_addr_bean_rel.deleted = 0 AND
+                        email_addr_bean_rel.bean_id = $relatedBeanTable.id AND
+                        email_addr_bean_rel.bean_module = '$relatedBeanModule') as email1";
+                }
+                
                 //Put the query into the final_query
                 $query = $subquery['select'] . " " . $subquery['from'] . " " . $subquery['where'];
                 if (!$first) {
@@ -2625,6 +2642,11 @@ class SugarBean
                 }
                 if (isset($def['dbType'])) {
                     $type .= $def['dbType'];
+                }
+
+                // Trim name & varchar type values on save when the value is not null
+                if (isset($def['type']) && in_array($def['type'], ['name', 'varchar']) && !is_null($this->$key ?? null)) {
+                    $this->$key = trim($this->$key);
                 }
 
                 if (isset($def['type']) && ($def['type'] == 'html' || $def['type'] == 'longhtml')) {

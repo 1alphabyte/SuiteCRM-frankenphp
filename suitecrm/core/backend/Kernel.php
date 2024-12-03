@@ -28,15 +28,14 @@
 
 namespace App;
 
+use App\DependecyInjection\BackwardsCompatibility\LegacySAMLExtension;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
-use Symfony\Component\Config\Exception\LoaderLoadException;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Config\Resource\FileResource;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
-use Symfony\Component\Routing\RouteCollectionBuilder;
 use function dirname;
 
 /**
@@ -103,25 +102,20 @@ class Kernel extends BaseKernel
     }
 
     /**
-     * @param RouteCollectionBuilder $routes
-     * @throws LoaderLoadException
-     */
-    protected function configureRoutes(RouteCollectionBuilder $routes): void
-    {
-        $confDir = dirname(__DIR__, 2) . '/config';
-        $routes->import($confDir . '/{routes}/' . $this->environment . '/*' . self::CONFIG_EXTS, '/', 'glob');
-        $routes->import($confDir . '/{routes}/*' . self::CONFIG_EXTS, '/', 'glob');
-        $routes->import($confDir . '/{routes}' . self::CONFIG_EXTS, '/', 'glob');
-    }
-
-    /**
      * Init bundles and container
      * @return void
      */
     public function init(): void
     {
+        $this->setSiteURLEnv();
         $this->initializeBundles();
         $this->initializeContainer();
+    }
+
+    protected function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+        $container->registerExtension(new LegacySAMLExtension());
     }
 
     /**
@@ -146,5 +140,43 @@ class Kernel extends BaseKernel
         if ($this->container->has('graphql.introspection_manager')) {
             $this->container->get('graphql.introspection_manager')->configure();
         }
+    }
+
+    public function setSiteURLEnv(): void
+    {
+        $config = $this->getConfigValues();
+
+        $env = $_ENV ?? [];
+        if (!empty($env['SITE_URL'])) {
+            return;
+        }
+
+        if (!empty($config['site_url'])) {
+            $_ENV['SITE_URL'] = rtrim($config['site_url'], '/');
+            return;
+        }
+
+        $_ENV['SITE_URL'] = 'http://localhost';
+    }
+
+    public function getConfigValues(): array
+    {
+        $sugar_config = [];
+
+        $legacyPath = __DIR__ . '/../../public/legacy/';
+
+        $configFile = $legacyPath . 'config.php';
+
+        if (file_exists($configFile)) {
+            include($configFile);
+        }
+
+        $configOverrideFile = $legacyPath . 'config_override.php';
+
+        if (file_exists($configOverrideFile)) {
+            include($configOverrideFile);
+        }
+
+        return $sugar_config;
     }
 }

@@ -32,7 +32,7 @@ use App\Engine\LegacyHandler\LegacyHandler;
 use App\Engine\LegacyHandler\LegacyScopeState;
 use App\Install\LegacyHandler\InstallHandler;
 use App\Languages\Entity\AppStrings;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class AppStringsHandler extends LegacyHandler
 {
@@ -70,7 +70,7 @@ class AppStringsHandler extends LegacyHandler
      * @param string $legacySessionName
      * @param string $defaultSessionName
      * @param LegacyScopeState $legacyScopeState
-     * @param SessionInterface $session
+     * @param RequestStack $session
      * @param InstallHandler $installHandler
      */
     public function __construct(
@@ -79,7 +79,7 @@ class AppStringsHandler extends LegacyHandler
         string $legacySessionName,
         string $defaultSessionName,
         LegacyScopeState $legacyScopeState,
-        SessionInterface $session,
+        RequestStack $session,
         InstallHandler $installHandler
     ) {
         parent::__construct(
@@ -126,6 +126,8 @@ class AppStringsHandler extends LegacyHandler
         }
 
         $appStringsArray = return_application_language($language);
+
+        $appStringsArray = $this->decodeLabels($appStringsArray);
 
         if (empty($appStringsArray)) {
             throw new ItemNotFoundException(self::MSG_LANGUAGE_NOT_FOUND . "'$language'");
@@ -267,5 +269,18 @@ class AppStringsHandler extends LegacyHandler
 
             $appStringsArray['SUITE8_LICENSE_CONTENT'] = '<pre>' . $license . '</pre>';
         }
+    }
+
+
+    protected function decodeLabels(array $appStringsArray): array
+    {
+        foreach($appStringsArray as $key => $string){
+            if (!is_array($string)) {
+                $string = html_entity_decode($string ?? '', ENT_QUOTES);
+            }
+            $appStringsArray[$key] = $string;
+        }
+
+        return $appStringsArray;
     }
 }

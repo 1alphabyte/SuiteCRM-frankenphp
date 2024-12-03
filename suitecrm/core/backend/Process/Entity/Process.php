@@ -25,72 +25,110 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-
-
 namespace App\Process\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\GraphQl\Mutation;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
+use ApiPlatform\Metadata\Put;
+use App\Process\DataPersister\ProcessProcessor;
+use App\Process\DataProvider\ProcessStateProvider;
 
-/**
- * @ApiResource(
- *     itemOperations={
- *          "get",
- *          "put",
- *     },
- *     collectionOperations={
- *          "get"
- *     },
- *     graphql={
- *         "item_query",
- *         "collection_query",
- *         "create"
- *     },
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(provider: ProcessStateProvider::class),
+        new Put(processor: ProcessProcessor::class),
+        new GetCollection(provider: ProcessStateProvider::class)
+    ],
+    graphQlOperations: [
+        new Query(provider: ProcessStateProvider::class),
+        new QueryCollection(provider: ProcessStateProvider::class),
+        new Mutation(name: 'create', processor: ProcessProcessor::class)
+    ]
+)]
 class Process
 {
     /**
-     * @ApiProperty(identifier=true)
      * @var string|null
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The id',
+        ]
+    )]
+    protected ?string $id;
 
     /**
-     * @ApiProperty
      * @var string|null
      */
-    protected $type;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'type',
+        ]
+    )]
+    protected ?string $type;
 
     /**
-     * @ApiProperty
      * @var string|null
      */
-    protected $status;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'status',
+        ]
+    )]
+    protected ?string $status;
 
     /**
-     * @ApiProperty
      * @var string[]|null
      */
-    protected $messages;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'messages',
+        ]
+    )]
+    protected ?array $messages;
 
     /**
-     * @ApiProperty
      * @var bool|null
      */
-    protected $async;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'bool',
+            'description' => 'async',
+        ]
+    )]
+    protected ?bool $async;
 
     /**
-     * @ApiProperty
      * @var array|null
      */
-    protected $options;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'options',
+        ]
+    )]
+    protected ?array $options;
 
     /**
-     * @ApiProperty
      * @var array|null
      */
-    protected $data;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'data',
+        ]
+    )]
+    protected ?array $data;
 
     /**
      * Get Id
@@ -98,7 +136,7 @@ class Process
      */
     public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
@@ -119,7 +157,7 @@ class Process
      */
     public function getType(): ?string
     {
-        return $this->type;
+        return $this->type ?? null;
     }
 
     /**
@@ -140,7 +178,7 @@ class Process
      */
     public function getStatus(): ?string
     {
-        return $this->status;
+        return $this->status ?? null;
     }
 
     /**
@@ -161,7 +199,7 @@ class Process
      */
     public function getMessages(): ?array
     {
-        return $this->messages;
+        return $this->messages ?? null;
     }
 
     /**
@@ -182,7 +220,7 @@ class Process
      */
     public function getAsync(): ?bool
     {
-        return $this->async;
+        return $this->async ?? null;
     }
 
     /**
@@ -203,7 +241,7 @@ class Process
      */
     public function getOptions(): ?array
     {
-        return $this->options;
+        return $this->options ?? null;
     }
 
     /**
@@ -224,7 +262,7 @@ class Process
      */
     public function getData(): ?array
     {
-        return $this->data;
+        return $this->data ?? null;
     }
 
     /**

@@ -17,13 +17,11 @@ use Symfony\Component\RateLimiter\Util\TimeUtil;
  * Data object representing the fill rate of a token bucket.
  *
  * @author Wouter de Jong <wouter@wouterj.nl>
- *
- * @experimental in 5.2
  */
 final class Rate
 {
-    private $refillTime;
-    private $refillAmount;
+    private \DateInterval $refillTime;
+    private int $refillAmount;
 
     public function __construct(\DateInterval $refillTime, int $refillAmount = 1)
     {
@@ -51,6 +49,16 @@ final class Rate
         return new static(new \DateInterval('P1D'), $rate);
     }
 
+    public static function perMonth(int $rate = 1): self
+    {
+        return new static(new \DateInterval('P1M'), $rate);
+    }
+
+    public static function perYear(int $rate = 1): self
+    {
+        return new static(new \DateInterval('P1Y'), $rate);
+    }
+
     /**
      * @param string $string using the format: "%interval_spec%-%rate%", {@see DateInterval}
      */
@@ -62,9 +70,7 @@ final class Rate
     }
 
     /**
-     * Calculates the time needed to free up the provided number of tokens.
-     *
-     * @return int the time in seconds
+     * Calculates the time needed to free up the provided number of tokens in seconds.
      */
     public function calculateTimeForTokens(int $tokens): int
     {
@@ -75,8 +81,6 @@ final class Rate
 
     /**
      * Calculates the next moment of token availability.
-     *
-     * @return \DateTimeImmutable the next moment a token will be available
      */
     public function calculateNextTokenAvailability(): \DateTimeImmutable
     {
@@ -95,8 +99,20 @@ final class Rate
         return $cycles * $this->refillAmount;
     }
 
+    /**
+     * Calculates total amount in seconds of refill intervals during $duration (for maintain strict refill frequency).
+     *
+     * @param float $duration interval in seconds
+     */
+    public function calculateRefillInterval(float $duration): int
+    {
+        $cycleTime = TimeUtil::dateIntervalToSeconds($this->refillTime);
+
+        return floor($duration / $cycleTime) * $cycleTime;
+    }
+
     public function __toString(): string
     {
-        return $this->refillTime->format('P%dDT%HH%iM%sS').'-'.$this->refillAmount;
+        return $this->refillTime->format('P%yY%mM%dDT%HH%iM%sS').'-'.$this->refillAmount;
     }
 }

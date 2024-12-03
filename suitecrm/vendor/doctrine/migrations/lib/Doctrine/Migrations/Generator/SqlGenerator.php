@@ -12,6 +12,7 @@ use Doctrine\SqlFormatter\SqlFormatter;
 
 use function array_unshift;
 use function count;
+use function get_class;
 use function implode;
 use function sprintf;
 use function stripos;
@@ -26,16 +27,10 @@ use function var_export;
  */
 class SqlGenerator
 {
-    /** @var Configuration */
-    private $configuration;
-
-    /** @var AbstractPlatform */
-    private $platform;
-
-    public function __construct(Configuration $configuration, AbstractPlatform $platform)
-    {
-        $this->configuration = $configuration;
-        $this->platform      = $platform;
+    public function __construct(
+        private readonly Configuration $configuration,
+        private readonly AbstractPlatform $platform,
+    ) {
     }
 
     /** @param string[] $sql */
@@ -43,7 +38,7 @@ class SqlGenerator
         array $sql,
         bool $formatted = false,
         int $lineLength = 120,
-        bool $checkDbPlatform = true
+        bool $checkDbPlatform = true,
     ): string {
         $code = [];
 
@@ -68,16 +63,22 @@ class SqlGenerator
         }
 
         if (count($code) !== 0 && $checkDbPlatform && $this->configuration->isDatabasePlatformChecked()) {
-            $currentPlatform = $this->platform->getName();
+            $currentPlatform = '\\' . get_class($this->platform);
 
             array_unshift(
                 $code,
                 sprintf(
-                    '$this->abortIf($this->connection->getDatabasePlatform()->getName() !== %s, %s);',
-                    var_export($currentPlatform, true),
-                    var_export(sprintf("Migration can only be executed safely on '%s'.", $currentPlatform), true)
+                    <<<'PHP'
+$this->abortIf(
+    !$this->connection->getDatabasePlatform() instanceof %s,
+    "Migration can only be executed safely on '%s'."
+);
+PHP
+                    ,
+                    $currentPlatform,
+                    $currentPlatform,
                 ),
-                ''
+                '',
             );
         }
 

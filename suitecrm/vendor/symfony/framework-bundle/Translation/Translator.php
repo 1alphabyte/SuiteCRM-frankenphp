@@ -36,29 +36,32 @@ class Translator extends BaseTranslator implements WarmableInterface
     ];
 
     /**
-     * @var array
+     * @var list<string>
      */
-    private $resourceLocales;
+    private array $resourceLocales;
 
     /**
      * Holds parameters from addResource() calls so we can defer the actual
      * parent::addResource() calls until initialize() is executed.
      *
-     * @var array
+     * @var array[]
      */
-    private $resources = [];
+    private array $resources = [];
 
-    private $resourceFiles;
+    /**
+     * @var string[][]
+     */
+    private array $resourceFiles;
 
     /**
      * @var string[]
      */
-    private $scannedDirectories;
+    private array $scannedDirectories;
 
     /**
      * @var string[]
      */
-    private $enabledLocales;
+    private array $enabledLocales;
 
     /**
      * Constructor.
@@ -92,15 +95,13 @@ class Translator extends BaseTranslator implements WarmableInterface
     }
 
     /**
-     * {@inheritdoc}
-     *
-     * @return string[]
+     * @param string|null $buildDir
      */
-    public function warmUp(string $cacheDir)
+    public function warmUp(string $cacheDir /* , string $buildDir = null */): array
     {
         // skip warmUp when translator doesn't use cache
         if (null === $this->options['cache_dir']) {
-            return;
+            return [];
         }
 
         $localesToWarmUp = $this->enabledLocales ?: array_merge($this->getFallbackLocales(), [$this->getLocale()], $this->resourceLocales);
@@ -117,7 +118,7 @@ class Translator extends BaseTranslator implements WarmableInterface
         return [];
     }
 
-    public function addResource(string $format, $resource, string $locale, string $domain = null)
+    public function addResource(string $format, mixed $resource, string $locale, ?string $domain = null): void
     {
         if ($this->resourceFiles) {
             $this->addResourceFiles();
@@ -125,10 +126,7 @@ class Translator extends BaseTranslator implements WarmableInterface
         $this->resources[] = [$format, $resource, $locale, $domain];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function initializeCatalogue(string $locale)
+    protected function initializeCatalogue(string $locale): void
     {
         $this->initialize();
         parent::initializeCatalogue($locale);
@@ -147,12 +145,15 @@ class Translator extends BaseTranslator implements WarmableInterface
         }
     }
 
+    /**
+     * @return void
+     */
     protected function initialize()
     {
         if ($this->resourceFiles) {
             $this->addResourceFiles();
         }
-        foreach ($this->resources as $key => $params) {
+        foreach ($this->resources as $params) {
             [$format, $resource, $locale, $domain] = $params;
             parent::addResource($format, $resource, $locale, $domain);
         }
@@ -165,13 +166,13 @@ class Translator extends BaseTranslator implements WarmableInterface
         }
     }
 
-    private function addResourceFiles()
+    private function addResourceFiles(): void
     {
         $filesByLocale = $this->resourceFiles;
         $this->resourceFiles = [];
 
-        foreach ($filesByLocale as $locale => $files) {
-            foreach ($files as $key => $file) {
+        foreach ($filesByLocale as $files) {
+            foreach ($files as $file) {
                 // filename is domain.locale.format
                 $fileNameParts = explode('.', basename($file));
                 $format = array_pop($fileNameParts);

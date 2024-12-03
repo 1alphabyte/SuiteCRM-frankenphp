@@ -27,15 +27,31 @@
 .saved-search-container {
   background-color: $lighter-salmon-pink;
 
+  .checkbox-field {
+    padding-top: 10px;
+  }
+
   .radioenum-input label:before {
     border: .06px solid $coral-pink;
   }
 
   .radioenum-input input[type=radio]:checked + label:after {
-    background: $coral-pink;
+    position: absolute;
+    top: .4375rem;
+    left: .25rem;
+  }
+
+  @-moz-document url-prefix() {
+    .radioenum-input input[type=radio]:checked + label:after {
+      top: 0.44rem;
+    }
   }
 
   .radioenum {
     padding-top: 3px;
+  }
+
+  .action-group-menu {
+    margin-top: -3px;
   }
 }

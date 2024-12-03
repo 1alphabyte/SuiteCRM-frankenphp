@@ -115,9 +115,11 @@ export class FilterFieldBuilder extends FieldBuilder {
 
         const fieldName = viewField.name;
         let fieldType = viewField.type;
+        let rangeSearch = false;
 
         if (fieldType === 'composite') {
             fieldType = field.definition.type;
+            rangeSearch = true;
         }
 
         if (searchCriteria.filters[fieldName] && searchCriteria.filters[fieldName].fieldType) {
@@ -128,8 +130,10 @@ export class FilterFieldBuilder extends FieldBuilder {
                 fieldType,
                 operator: '',
                 values: []
-            };
+            } as SearchCriteriaFieldFilter;
         }
+
+        fieldCriteria.rangeSearch = rangeSearch;
 
         this.mapEnumEmptyOption(fieldCriteria, field);
 

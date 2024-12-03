@@ -45,6 +45,7 @@ export interface SessionStatus {
     id?: string;
     firstName?: string;
     lastName?: string;
+    redirect?: any;
 }
 
 export interface AppStatus {
@@ -138,10 +139,12 @@ export class AuthService {
 
         const logoutConfig = this.configs.getConfigValue('logout') ?? [];
         let logoutUrl = (logoutConfig?.path ?? 'logout') as string;
-        const redirectLogout = isTrue(logoutConfig?.redirect ?? false);
+        let redirectLogout = isTrue(logoutConfig?.redirect ?? false);
+        const afterLogoutPath = (logoutConfig?.after_logout_path ?? './') as string;
 
         if (this.baseRoute.isNativeAuth()) {
             logoutUrl = this.baseRoute.getNativeOutLogoutUrl();
+            redirectLogout = false;
         }
 
         logoutUrl = this.baseRoute.calculateRoute(logoutUrl);
@@ -150,14 +153,14 @@ export class AuthService {
         const headers = new HttpHeaders().set('Content-Type', 'text/plain; charset=utf-8');
 
         if (this.appStateStore.getActiveRequests() < 1) {
-            this.callLogout(logoutUrl, body, headers, redirect, messageKey, redirectLogout);
+            this.callLogout(logoutUrl, body, headers, redirect, messageKey, redirectLogout, afterLogoutPath);
         } else {
             this.appStateStore.activeRequests$.pipe(
                 filter(value => value < 1),
                 take(1)
             ).subscribe(
                 () => {
-                    this.callLogout(logoutUrl, body, headers, redirect, messageKey, redirectLogout);
+                    this.callLogout(logoutUrl, body, headers, redirect, messageKey, redirectLogout, afterLogoutPath);
                 }
             )
         }
@@ -179,7 +182,8 @@ export class AuthService {
         headers: HttpHeaders,
         redirect: boolean,
         messageKey: string,
-        redirectLogout: boolean
+        redirectLogout: boolean,
+        afterLogoutPath: string
     ) {
         this.resetState();
 
@@ -201,7 +205,7 @@ export class AuthService {
                     this.stateManager.clearAuthBased();
                     this.configs.clear();
                     if (redirect === true) {
-                        this.router.navigate(['/Login']).finally();
+                        window.location.href = afterLogoutPath;
                     }
                 })
             )

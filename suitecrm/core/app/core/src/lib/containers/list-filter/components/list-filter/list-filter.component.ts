@@ -25,7 +25,7 @@
  */
 
 import {Component, HostListener, Input, OnDestroy, OnInit} from '@angular/core';
-import {Action, ButtonInterface, Record, ScreenSizeMap} from 'common';
+import {ButtonInterface, Record, ScreenSizeMap} from 'common';
 import {Observable, of, Subscription} from 'rxjs';
 import {map, shareReplay} from 'rxjs/operators';
 import {FilterConfig} from './list-filter.model';
@@ -54,12 +54,13 @@ export class ListFilterComponent implements OnInit, OnDestroy {
 
     protected subs: Subscription[] = [];
 
-    @HostListener('keydown.enter')
+    @HostListener('keydown.enter', ['$event'])
     onEnterKey() {
         if (!this.selectedActionButton) {
             return;
         }
         this.selectedActionButton.onClick();
+        event.preventDefault();
     }
 
     constructor(
@@ -85,7 +86,7 @@ export class ListFilterComponent implements OnInit, OnDestroy {
             onClick: () => {
                 this.filterActionsAdapter.run('save');
             }
-        }
+        } as ButtonInterface;
 
         this.gridConfig = {
             record$: this.store.filterStore.stagingRecord$,
@@ -108,7 +109,7 @@ export class ListFilterComponent implements OnInit, OnDestroy {
                 web: 4,
                 wide: 4
             } as ScreenSizeMap).pipe(shareReplay(1))
-        }
+        } as RecordGridConfig;
     }
 
     ngOnDestroy(): void {

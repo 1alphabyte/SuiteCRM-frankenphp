@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace ApiPlatform\Doctrine\Common\Filter;
 
 use ApiPlatform\Doctrine\Common\PropertyHelperTrait;
-use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 
 /**
  * Trait for filtering the collection by date intervals.
@@ -55,7 +55,7 @@ trait DateFilterTrait
 
     abstract protected function getProperties(): ?array;
 
-    abstract protected function normalizePropertyName($property): string;
+    abstract protected function normalizePropertyName(string $property): string;
 
     /**
      * Determines whether the given property refers to a date field.

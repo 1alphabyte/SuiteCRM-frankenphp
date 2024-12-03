@@ -27,12 +27,13 @@
 
 namespace App\Install\Command;
 
+use App\Engine\LegacyHandler\DefaultLegacyHandler;
 use App\Engine\Model\Feedback;
 use App\Languages\LegacyHandler\AppStringsHandler;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 abstract class BaseCommand extends Command
 {
@@ -52,9 +53,9 @@ abstract class BaseCommand extends Command
     protected $defaultSessionName;
 
     /**
-     * @var SessionInterface
+     * @var RequestStack
      */
-    protected $session;
+    protected $requestStack;
 
     /**
      * @var string
@@ -65,6 +66,11 @@ abstract class BaseCommand extends Command
      * @var AppStringsHandler
      */
     protected $appStringsHandler;
+
+    /**
+     * @var DefaultLegacyHandler
+     */
+    protected DefaultLegacyHandler $legacyHandler;
 
     /**
      * @required
@@ -86,11 +92,11 @@ abstract class BaseCommand extends Command
 
     /**
      * @required
-     * @param SessionInterface $session
+     * @param RequestStack $requestStack
      */
-    public function setSession(SessionInterface $session): void
+    public function setRequestStack(RequestStack $requestStack): void
     {
-        $this->session = $session;
+        $this->requestStack = $requestStack;
     }
 
     /**
@@ -100,6 +106,23 @@ abstract class BaseCommand extends Command
     public function setAppStringsHandler(AppStringsHandler $appStringsHandler): void
     {
         $this->appStringsHandler = $appStringsHandler;
+    }
+
+    /**
+     * @return DefaultLegacyHandler
+     */
+    public function getLegacyHandler(): DefaultLegacyHandler
+    {
+        return $this->legacyHandler;
+    }
+
+    /**
+     * @param DefaultLegacyHandler $legacyHandler
+     * @return void
+     */
+    public function setLegacyHandler(DefaultLegacyHandler $legacyHandler): void
+    {
+        $this->legacyHandler = $legacyHandler;
     }
 
     /**
@@ -163,13 +186,12 @@ abstract class BaseCommand extends Command
      */
     protected function startSession(): void
     {
-        if ($this->session->isStarted()) {
+        if (session_status() === PHP_SESSION_ACTIVE) {
             return;
         }
 
-        $this->session->setName($this->defaultSessionName);
-
-        $this->session->start();
+        $this->legacyHandler->init(); // will start session
+        $this->legacyHandler->close();
     }
 
     /**
@@ -251,7 +273,8 @@ abstract class BaseCommand extends Command
         }
     }
 
-    protected function writeFeedbackWarnings(OutputInterface $output, Feedback $feedback): void {
+    protected function writeFeedbackWarnings(OutputInterface $output, Feedback $feedback): void
+    {
         $warnings = $feedback->getWarnings() ?? [];
         foreach ($warnings as $warning) {
             $output->writeln('<fg=yellow>' . $warning . '</>');

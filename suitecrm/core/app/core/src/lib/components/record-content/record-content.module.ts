@@ -45,7 +45,7 @@ import {ToObservableModule} from '../../pipes/toObservable/toObservable.module';
         PanelModule,
         NgbModule,
         FieldLayoutModule,
-        ToObservableModule,
+        ToObservableModule
     ]
 })
 export class RecordContentModule {

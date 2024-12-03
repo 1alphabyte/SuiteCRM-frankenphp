@@ -28,12 +28,15 @@
 namespace App\Security\Ldap;
 
 use App\Module\Users\Entity\User;
+use Symfony\Component\Ldap\Exception\ConnectionException;
+use Symfony\Component\Ldap\Exception\LdapException;
+use Symfony\Component\Ldap\Exception\NotBoundException;
 use Symfony\Component\Ldap\Security\CheckLdapCredentialsListener;
 use Symfony\Component\Ldap\Security\LdapBadge;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordCredentials;
-use Symfony\Component\Security\Http\Authenticator\Passport\PassportInterface;
+use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Event\CheckPassportEvent;
 
 class AppCheckLdapCredentialsListener extends CheckLdapCredentialsListener
@@ -62,22 +65,25 @@ class AppCheckLdapCredentialsListener extends CheckLdapCredentialsListener
 
         try {
             parent::onCheckPassport($event);
-        } catch (BadCredentialsException $e) {
-            $externalAuthOnly = $this->getExternalAuthOnly($passport);
+        } catch (BadCredentialsException|LdapException|NotBoundException|ConnectionException $e) {
+            $isExternalAuthOnly = !empty($this->getExternalAuthOnly($passport));
 
-            if (!empty($externalAuthOnly)) {
+            // If is external auth only, throw the exception because external auth failed
+            if ($isExternalAuthOnly) {
                 throw $e;
             }
 
+            // If is NOT external auth only mark ldap resolved
+            // After the password badge is going to decide if it is authenticated or not
             $ldapBadge->markResolved();
         }
     }
 
     /**
-     * @param PassportInterface $passport
+     * @param Passport $passport
      * @return string|null
      */
-    protected function getExternalAuthOnly(PassportInterface $passport): ?string
+    protected function getExternalAuthOnly(Passport $passport): ?string
     {
         $user = $this->getUser($passport);
 
@@ -89,10 +95,10 @@ class AppCheckLdapCredentialsListener extends CheckLdapCredentialsListener
     }
 
     /**
-     * @param PassportInterface $passport
+     * @param Passport $passport
      * @return User|null
      */
-    protected function getUser(PassportInterface $passport): ?User
+    protected function getUser(Passport $passport): ?User
     {
         /** @var UserBadge $userBadge */
         $userBadge = $passport->getBadge(UserBadge::class);

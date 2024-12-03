@@ -38,9 +38,18 @@ Alternatively, you can also work with the test application we provide:
     cd tests/Fixtures/app
     ./console assets:install --symlink
     symfony serve
+
+    # if you prefer keeping the server in your terminal:
+    symfony server:start --dir tests/Fixtures/app
     
     # or if you prefer using the PHP built-in web server
     php -S localhost:8000 -t public/
+
+You also have access to a `console`:
+
+```
+APP_DEBUG=1 tests/Fixtures/app/console debug:config
+```
 
 ### Matching Coding Standards
 
@@ -55,6 +64,8 @@ Be sure to add only **your modified files**. If any other file is fixed by cs to
 ### Backward Compatibility Promise
 
 API Platform is following the [Symfony Backward Compatibility Promise](https://symfony.com/doc/current/contributing/code/bc.html).
+
+As users need to use named arguments when using our attributes, they don't follow the backward compatibility rules applied to the constructor.
 
 When you are making a change, make sure no BC break is added.
 
@@ -102,18 +113,32 @@ Examples:
     test(doctrine): mongodb disambiguation
 
 We strongly recommend the use of a scope on API Platform core.
+Only the first commit on a Pull Request need to use a conventional commit, other commits will be squashed. 
 
 ### Tests
 
 On `api-platform/core` there are two kinds of tests: unit (`phpunit` through `simple-phpunit`) and integration tests (`behat`).
 
+Note that we stopped using `prophesize` for new tests since 3.2, use `phpunit` stub system.
+
 Both `simple-phpunit` and `behat` are development dependencies and should be available in the `vendor` directory.
+
+Recommendations:
+
+* don't change existing tests if possible
+* always add a new `ApiResource` or a new `Entity/Document` to add a new test instead of changing an existing class
+* as of API Platform 3 each component has it's own test directory, avoid the `tests/` directory except for functional tests
+* dependencies between components must be kept at its minimal (`api-platform/metadata`, `api-platform/state`) except for bridges (Doctrine, Symfony, Laravel etc.)
+
+Note that in most of the testing, you don't need Doctrine take a look at how we write fixtures at: 
+
+https://github.com/api-platform/core/blob/002c8b25283c9c06a085945f6206052a99a5fb1e/tests/Fixtures/TestBundle/Entity/Issue5926/TestIssue5926.php#L20-L26
 
 #### PHPUnit and Coverage Generation
 
 To launch unit tests:
 
-    vendor/bin/simple-phpunit --stop-on-failure -vvv
+    vendor/bin/simple-phpunit --stop-on-defect -vvv
 
 If you want coverage, you will need the `pcov` PHP extension and run:
 
@@ -155,6 +180,11 @@ If you need a `Given` step, add it to the doctrine context in `tests/Core/Behat/
 ```
 
 The last step is to add you feature inside `features/`. You can add your test in one of our existing features, or create your own.
+
+## Components tests
+
+API Platform is split into several components. There are tests for each of these, to run them `cd src/Doctrine/Common` then `composer update` and `./vendor/bin/phpunit`.
+We do not provide a way to run all these tests at once yet.
 
 # License and Copyright Attribution
 

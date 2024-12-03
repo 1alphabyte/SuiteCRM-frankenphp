@@ -204,6 +204,10 @@ export abstract class BaseActionsAdapter<D extends ActionData> implements Action
                 action.status = actionHandler.getStatus(data) || '';
             }
 
+            if (!actionHandler && !action?.asyncProcess) {
+                return;
+            }
+
             const module = (context && context.module) || '';
             const label = this.language.getFieldLabel(action.labelKey, module);
             actions.push({
@@ -296,19 +300,10 @@ export abstract class BaseActionsAdapter<D extends ActionData> implements Action
 
         if (typesToLoad && typesToLoad.length) {
             this.metadata.reloadModuleMetadata(moduleName, typesToLoad, false).pipe(take(1)).subscribe();
+            if(typesToLoad.includes(this.metadata.typeKeys.recentlyViewed)) {
+                this.appMetadataStore.load(moduleName, ['globalRecentlyViewed'], false).pipe(take(1)).subscribe();
+            }
         }
-
-        if (this.shouldReloadGlobalRecentlyViewed(process)) {
-            this.appMetadataStore.load(moduleName, ['globalRecentlyViewed'], false).pipe(take(1)).subscribe();
-        }
-    }
-
-    /**
-     * Should reload page
-     * @param process
-     */
-    protected shouldReloadGlobalRecentlyViewed(process: Process): boolean {
-        return !!(process.data && process.data.reloadGlobalRecentlyViewed);
     }
 
     /**

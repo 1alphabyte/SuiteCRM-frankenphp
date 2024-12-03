@@ -53,27 +53,27 @@ class InstallPreChecks
     /**
      * @var array
      */
-    public $systemChecks = [];
+    public array $systemChecks = [];
 
     /**
      * @var bool
      */
-    public $errorsFound = false;
+    public bool $errorsFound = false;
 
     /**
      * @var bool
      */
-    public $warningsFound = false;
+    public bool $warningsFound = false;
 
     /**
      * @var string
      */
-    public $xsrfToken = '';
+    public string $xsrfToken = '';
 
     /**
      * @var array
      */
-    public $cookies = [];
+    public array $cookies = [];
     /**
      * @var Logger
      */
@@ -100,14 +100,14 @@ class InstallPreChecks
         }
 
         if (file_exists('legacy/config.php') && ($sugar_config['installer_locked'] ?? false) === true) {
-                $loader = new FilesystemLoader(__DIR__ . '/../Resources');
-                $twig = new Environment($loader);
-                $template = $twig->load('installer_locked.html.twig');
-                echo $template->render([
-                    'cssFile' => $cssFile,
-                    'mod_strings' => $this->modStrings
-                ]);
-                return;
+            $loader = new FilesystemLoader(__DIR__ . '/../Resources');
+            $twig = new Environment($loader);
+            $template = $twig->load('installer_locked.html.twig');
+            echo $template->render([
+                'cssFile' => $cssFile,
+                'mod_strings' => $this->modStrings
+            ]);
+            return;
         }
 
         $path = realpath('./');
@@ -116,10 +116,6 @@ class InstallPreChecks
         $template = $twig->load('install-prechecks.html.twig');
 
         $this->requiredInstallChecks();
-
-        if (!$this->errorsFound) {
-            file_put_contents('../.installed_checked', 'true');
-        }
 
         $this->optionalInstallChecks();
 
@@ -191,6 +187,9 @@ class InstallPreChecks
         $ch = curl_init();
         $timeout = 5;
         $logFile = __DIR__ . '/../../../../logs/install.log';
+        $checkFile = __DIR__ . '/../../../../.curl_check_main_page';
+
+        file_put_contents($checkFile, 'running');
 
         $output = [
             'result' => '',
@@ -232,19 +231,19 @@ class InstallPreChecks
         if (curl_errno($ch)) {
             $error = 'cURL error (' . curl_errno($ch) . '): ' . curl_error($ch);
 
-            return $this->outputError($streamVerboseHandle, $error, $logFile, $baseUrl, $result);
+            return $this->outputError($streamVerboseHandle, $error, $logFile, $checkFile, $baseUrl, $result);
         }
 
         if (!str_contains($result, '<title>SuiteCRM</title>')) {
             $error = $this->modStrings['LBL_NOT_A_VALID_SUITECRM_PAGE'] ?? '';
 
-            return $this->outputError($streamVerboseHandle, $error, $logFile, $baseUrl, $result);
+            return $this->outputError($streamVerboseHandle, $error, $logFile, $checkFile,  $baseUrl, $result);
         }
 
         if (empty($headers['set-cookie'])) {
             $error = $this->modStrings['LBL_NOT_COOKIE_OR_TOKEN'] ?? '';
 
-            return $this->outputError($streamVerboseHandle, $error, $logFile, $baseUrl, $result);
+            return $this->outputError($streamVerboseHandle, $error, $logFile, $checkFile,  $baseUrl, $result);
         }
 
         foreach ($headers['set-cookie'] as $cookie) {
@@ -270,7 +269,8 @@ class InstallPreChecks
         return $output;
     }
 
-    function outputError($streamVerboseHandle, $error, $logFile, $baseUrl, $result): array {
+    function outputError($streamVerboseHandle, $error, $logFile, $checkFile, $baseUrl, $result): array
+    {
 
         $modStrings = $this->getLanguageStrings();
 
@@ -299,6 +299,10 @@ class InstallPreChecks
             return $output;
         }
 
+        if (file_exists($checkFile)) {
+            unlink($checkFile);
+        }
+
         $output['errors'][] = $modStrings['LBL_EMPTY'];
         $this->log->error($modStrings['LBL_EMPTY']);
         return $output;
@@ -315,6 +319,11 @@ class InstallPreChecks
         $ch = curl_init();
         $timeout = 5;
         $logFile = __DIR__ . '/../../../../logs/install.log';
+        $checkFile = __DIR__ . '/../../../../.curl_check_main_page';
+
+        if (!file_exists($checkFile)){
+            file_put_contents($checkFile, 'running');
+        }
 
         $output = [
             'result' => '',
@@ -363,7 +372,7 @@ class InstallPreChecks
         if (curl_errno($ch)) {
             $error = 'cURL error (' . curl_errno($ch) . '): ' . curl_error($ch);
 
-            return $this->outputError($streamVerboseHandle, $error, $logFile, $apiUrl, $result);
+            return $this->outputError($streamVerboseHandle, $error, $logFile, $checkFile,  $apiUrl, $result);
         }
 
         $resultJson = json_decode($result, true);
@@ -371,13 +380,17 @@ class InstallPreChecks
         if (empty($resultJson)) {
             $error = $this->modStrings['LBL_CURL_JSON_ERROR'] ?? '';
 
-            return $this->outputError($streamVerboseHandle, $error, $logFile, $apiUrl, $result);
+            return $this->outputError($streamVerboseHandle, $error, $logFile, $checkFile,  $apiUrl, $result);
         }
 
         if (empty($resultJson['data']['systemConfigs'])) {
             $error = $this->modStrings['LBL_UNABLE_TO_FIND_SYSTEM_CONFIGS'] ?? '';
 
-            return $this->outputError($streamVerboseHandle, $error, $logFile, $apiUrl, $result);
+            return $this->outputError($streamVerboseHandle, $error, $logFile, $checkFile,  $apiUrl, $result);
+        }
+
+        if (file_exists($checkFile)) {
+            unlink($checkFile);
         }
 
         curl_close($ch);
@@ -400,9 +413,9 @@ class InstallPreChecks
         $sugarConfig = $this->getConfigValues();
         $configOverride = $this->getConfigOverrideValues();
 
-        $enUsLangPack = __DIR__ . '/../../../../public/legacy/install/language/'. $lang . '.lang.php';
+        $enUsLangPack = __DIR__ . '/../../../../public/legacy/install/language/' . $lang . '.lang.php';
 
-        if (is_file($enUsLangPack)){
+        if (is_file($enUsLangPack)) {
             include($enUsLangPack);
             $enUsStrings = $mod_strings;
         }
@@ -432,7 +445,7 @@ class InstallPreChecks
 
         $configFile = __DIR__ . '/../../../../public/legacy/config.php';
 
-        if (file_exists($configFile)){
+        if (file_exists($configFile)) {
             include($configFile);
         }
 
@@ -445,7 +458,7 @@ class InstallPreChecks
 
         $configOverrideFile = __DIR__ . '/../../../../public/legacy/config_override.php';
 
-        if (file_exists($configOverrideFile)){
+        if (file_exists($configOverrideFile)) {
             include($configOverrideFile);
         }
 
@@ -517,7 +530,7 @@ class InstallPreChecks
         if ((int)$num < (int)$sugarMinMemory) {
             $minMemoryInMegs = constant('SUGARCRM_MIN_MEM') / (1024 * 1024);
             $error = $this->modStrings['LBL_PHP_MEM_1'] . $memoryLimit . $this->modStrings['LBL_PHP_MEM_2'] . $minMemoryInMegs . $this->modStrings['LBL_PHP_MEM_3'];
-            $results['errors'][] =  $this->modStrings['LBL_CHECK_FAILED'] . $error;
+            $results['errors'][] = $this->modStrings['LBL_CHECK_FAILED'] . $error;
             return $results;
         }
 
@@ -611,6 +624,8 @@ class InstallPreChecks
 
         $this->log->info('Running Permission Checks');
 
+        $results[] = $this->isRootWritable($labels);
+
         $results[] = $this->isWritableCustomDir($labels);
 
         $results[] = $this->isWritableUploadDir($labels);
@@ -622,6 +637,7 @@ class InstallPreChecks
         $results[] = $this->checkMbStringsModule($labels);
 
         $results[] = $this->isWritableSubDirFiles($labels);
+
 
         $results[] = $this->isWritableLogsFolder($labels);
 
@@ -722,8 +738,8 @@ class InstallPreChecks
             }
             if (!$isWritable) {
                 $fileList .= '<br>' . getcwd() . "/$dirname";
-                $results['errors'][] = 'legacy/cache/' . $cacheFile . ' is not writeable';
-                $this->log->error($cacheFile . ' is not writeable');
+                $results['errors'][] = 'legacy/cache/' . $cacheFile . ' is Not Writeable.';
+                $this->log->error($cacheFile . ' is Not Writeable');
             }
         }
 
@@ -777,7 +793,7 @@ class InstallPreChecks
             return $results;
         }
 
-        if (!is_writable('legacy/config.php')){
+        if (!is_writable('legacy/config.php')) {
             $this->log->error($this->modStrings['ERR_CHECKSYS_CONFIG_NOT_WRITABLE'] . 'Path Checked: legacy/config.php');
             $results['errors'][] = $this->modStrings['ERR_CHECKSYS_CONFIG_NOT_WRITABLE'] . ' Path Checked: legacy/config.php';
             return $results;
@@ -1130,6 +1146,7 @@ class InstallPreChecks
                 $result['result'] = '';
                 $result['warnings'][] = $this->modStrings['ERR_CHECKSYS_' . strtoupper($module)] ?? strtoupper($module) . ' not found in extensions.';
                 $this->systemChecks[$key]['checks'][$label]['warnings'] = $result['warnings'];
+                $this->warningsFound = true;
             } else {
                 $this->log->info($module . ' found in loaded extensions');
                 $result['result'] = $this->modStrings['LBL_CHECKSYS_OK'];
@@ -1158,7 +1175,35 @@ class InstallPreChecks
 
     }
 
-    public function checkFolderIsWritable(string $folderName, array &$labels, string $parentDir = ''): array {
+    protected function isRootWritable(&$labels): array
+    {
+        $this->modStrings = $this->getLanguageStrings();
+
+        $this->log->info('Checking if root is writable');
+
+        $labels[] = $this->modStrings['LBL_CHECKSYS_ROOT'];
+
+        $rootFolder = __DIR__ . '/../../../../';
+
+        $results = [
+            'result' => '',
+            'errors' => []
+        ];
+
+        if (!is_writable($rootFolder)){
+            $results['errors'][] = $this->modStrings['ERR_CHECKSYS_ROOT_NOT_WRITABLE'];
+            return $results;
+        }
+
+        $this->log->info('Root exists and is writable');
+        $results['result'] = $this->modStrings['LBL_CHECKSYS_OK'];
+
+        return $results;
+
+    }
+
+    public function checkFolderIsWritable(string $folderName, array &$labels, string $parentDir = ''): array
+    {
 
         $this->modStrings = $this->getLanguageStrings();
 
@@ -1166,9 +1211,14 @@ class InstallPreChecks
 
         $labels[] = $this->modStrings['LBL_CHECKSYS_' . strtoupper($folderName)];
 
+        $results = [
+            'result' => '',
+            'errors' => []
+        ];
+
         $folder = __DIR__ . '/../../../../' . $folderName;
 
-        if (!empty($parentDir)){
+        if (!empty($parentDir)) {
             $folder = __DIR__ . '/../../../../' . $parentDir . '/' . $folderName;
         }
 
@@ -1201,7 +1251,12 @@ class InstallPreChecks
 
         $env = __DIR__ . '/../../../../.env';
 
-        if (file_exists($env) && is_writable($env) || !file_exists($env) && touch($env)){
+        $results = [
+            'result' => '',
+            'errors' => []
+        ];
+
+        if (file_exists($env) && is_writable($env) || !file_exists($env) && touch($env)) {
             $this->log->info('.env exists or is writable');
             $results['result'] = $this->modStrings['LBL_CHECKSYS_OK'];
 

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace ApiPlatform\Doctrine\Common\Filter;
 
 use ApiPlatform\Doctrine\Common\PropertyHelperTrait;
-use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -58,7 +58,7 @@ trait RangeFilterTrait
 
     abstract protected function getLogger(): LoggerInterface;
 
-    abstract protected function normalizePropertyName($property): string;
+    abstract protected function normalizePropertyName(string $property): string;
 
     /**
      * Gets filter description.
@@ -123,10 +123,8 @@ trait RangeFilterTrait
 
     /**
      * Normalize the value.
-     *
-     * @return int|float|null
      */
-    private function normalizeValue(string $value, string $operator)
+    private function normalizeValue(string $value, string $operator): float|int|null
     {
         if (!is_numeric($value)) {
             $this->getLogger()->notice('Invalid filter ignored', [

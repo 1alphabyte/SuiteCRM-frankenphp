@@ -33,6 +33,7 @@ import {
     ColumnDefinition,
     deepClone,
     Favorite,
+    FieldActions,
     FieldDefinitionMap,
     ListViewMeta,
     MassUpdateMeta,
@@ -41,7 +42,8 @@ import {
     SearchMeta,
     SubPanelMeta,
     WidgetMetadata,
-    TabDefinitions
+    TabDefinitions,
+    ObjectMap
 } from 'common';
 import {StateStore} from '../state';
 import {AppStateStore} from '../app-state/app-state.store';
@@ -59,6 +61,7 @@ export interface RecordViewMetadata {
     panels?: Panel[];
     summaryTemplates?: SummaryTemplates;
     vardefs?: FieldDefinitionMap;
+    metadata?: ObjectMap;
 }
 
 export interface RecordTemplateMetadata {
@@ -78,6 +81,7 @@ export interface Metadata {
     massUpdate?: MassUpdateMeta;
     recentlyViewed?: RecentlyViewed[];
     favorites?: Favorite[];
+    fieldActions?: FieldActions;
 }
 
 export interface MetadataMap {
@@ -94,7 +98,8 @@ const initialState: Metadata = {
     subPanel: {} as SubPanelMeta,
     massUpdate: {} as MassUpdateMeta,
     recentlyViewed: [],
-    favorites: []
+    favorites: [],
+    fieldActions: {} as FieldActions
 };
 
 const initialModuleMetadataState: MetadataMap = {};
@@ -126,6 +131,7 @@ export class MetadataStore implements StateStore {
     listMetadata$: Observable<ListViewMeta>;
     searchMetadata$: Observable<SearchMeta>;
     recordViewMetadata$: Observable<RecordViewMetadata>;
+    fieldActions$: Observable<any>;
     metadata$: Observable<Metadata>;
     allModuleMetadata$: Observable<MetadataMap>;
     subPanelMetadata$: Observable<SubPanelMeta>;
@@ -174,6 +180,7 @@ export class MetadataStore implements StateStore {
         this.listMetadata$ = this.state$.pipe(map(state => state.listView), distinctUntilChanged());
         this.searchMetadata$ = this.state$.pipe(map(state => state.search), distinctUntilChanged());
         this.recordViewMetadata$ = this.state$.pipe(map(state => state.recordView), distinctUntilChanged());
+        this.fieldActions$ = this.state$.pipe(map(state => state.fieldActions), distinctUntilChanged());
         this.subPanelMetadata$ = this.state$.pipe(map(state => state.subPanel), distinctUntilChanged());
         this.metadata$ = this.state$;
         this.allModuleMetadata$ = this.allModulesState$;
@@ -316,6 +323,7 @@ export class MetadataStore implements StateStore {
         this.parseMassUpdateMetadata(data, metadata);
         this.parseRecentlyViewedMetadata(data, metadata);
         this.parseFavoritesMetadata(data, metadata);
+        this.parseFieldViewMetada(data, metadata);
         return metadata;
     }
 
@@ -412,6 +420,39 @@ export class MetadataStore implements StateStore {
         metadata.listView = listViewMeta;
     }
 
+    protected parseFieldViewMetada(data, metadata: Metadata): void {
+
+        if (!data || !data.recordView || !data.recordView.panels) {
+            return;
+        }
+
+        const fieldActions: any = {
+            recordView: {}
+        };
+
+        data.recordView.panels.forEach(panel => {
+            if (panel.rows) {
+                panel.rows.forEach(row => {
+                    if (row.cols) {
+                        row.cols.forEach(col => {
+                            if (col.fieldActions && col.fieldActions.actions) {
+                                Object.values(col.fieldActions.actions).forEach(action => {
+                                    action['fieldName'] = col.name;
+                                    const viewFieldActions = fieldActions['recordView'][col.name] ?? [];
+                                    viewFieldActions.push(action);
+                                    fieldActions['recordView'][col.name] = viewFieldActions;
+                                });
+                            }
+                        });
+                    }
+                })
+            }
+        })
+
+        metadata.fieldActions = fieldActions;
+
+    }
+
     protected parseSearchMetadata(data, metadata: Metadata): void {
         if (data && data.search) {
             metadata.search = data.search;
@@ -450,7 +491,8 @@ export class MetadataStore implements StateStore {
             sidebarWidgets: 'sidebarWidgets',
             bottomWidgets: 'bottomWidgets',
             summaryTemplates: 'summaryTemplates',
-            vardefs: 'vardefs'
+            vardefs: 'vardefs',
+            metadata: 'metadata'
         };
 
         this.addDefinedMeta(recordViewMeta, receivedMeta, entries);

@@ -81,10 +81,10 @@ class FilterMapper
 
                 $filter['field'] = $fieldKey;
                 $filter['operator'] = $value;
-                $filter['start'] = $contents["start_range_${fieldKey}_advanced"] ?? '';
-                $filter['end'] = $contents["end_range_${fieldKey}_advanced"] ?? '';
-                $filter['target'] = $contents["range_${fieldKey}_advanced"] ?? '';
-                $filter['fieldType'] = $contents["field_type_${fieldKey}"] ?? '';
+                $filter['start'] = $contents["start_range_{$fieldKey}_advanced"] ?? '';
+                $filter['end'] = $contents["end_range_{$fieldKey}_advanced"] ?? '';
+                $filter['target'] = $contents["range_{$fieldKey}_advanced"] ?? '';
+                $filter['fieldType'] = $contents["field_type_{$fieldKey}"] ?? '';
 
                 $filters[$fieldKey] = $filter;
                 continue;
@@ -139,17 +139,26 @@ class FilterMapper
             return $mapped;
         }
 
+
         foreach ($criteria['filters'] as $key => $item) {
             if (empty($item['operator'])) {
                 continue;
             }
 
+            $isRangeSearch = $item['rangeSearch'] ?? false;
+
             $fieldType = $item['fieldType'] ?? '';
             $operator = $item['operator'] ?? '';
+
+            if ($operator === '=' && $isRangeSearch) {
+                $operator = 'range_search_equals';
+            }
+
             $typeConfig = $this->filterOperatorMap[$fieldType] ?? [];
 
             $mergedConfig = array_merge($this->filterOperatorMap['default'], $typeConfig);
             $mapConfig = $mergedConfig[$operator];
+
 
             if (empty($mapConfig)) {
                 continue;
@@ -161,6 +170,7 @@ class FilterMapper
 
                 $mapped[$legacyKey] = $legacyValue;
             }
+
             $mapped['field_type_' . $key] = $fieldType;
         }
 

@@ -26,38 +26,47 @@
  */
 
 
-
 namespace App\Themes\Entity;
 
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GraphQl\Query;
+use App\Themes\DataProvider\ThemeImagesStateProvider;
 
-/**
- * @ApiResource(
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *     },
- *     graphql={
- *         "item_query",
- *     },
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(uriTemplate: '/theme-images/{id}', provider: ThemeImagesStateProvider::class)
+    ],
+    graphQlOperations: [
+        new Query(provider: ThemeImagesStateProvider::class)
+    ]
+)]
 class ThemeImages
 {
     /**
-     * @ApiProperty(identifier=true)
      * @var string|null
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The id',
+        ]
+    )]
+    protected ?string $id;
 
     /**
-     * @ApiProperty
      * @var array|null
      */
-    protected $items;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The items',
+        ]
+    )]
+    protected ?array $items;
 
     /**
      * Get Id
@@ -65,7 +74,7 @@ class ThemeImages
      */
     public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
@@ -86,7 +95,7 @@ class ThemeImages
      */
     public function getItems(): ?array
     {
-        return $this->items;
+        return $this->items ?? null;
     }
 
     /**

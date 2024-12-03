@@ -26,45 +26,61 @@
  */
 
 
-
 namespace App\SystemConfig\Entity;
 
-use ApiPlatform\Core\Annotation\ApiProperty;
-use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\GraphQl\Query;
+use ApiPlatform\Metadata\GraphQl\QueryCollection;
+use App\SystemConfig\DataProvider\SystemConfigStateProvider;
 
-/**
- * @ApiResource(
- *     itemOperations={
- *          "get"
- *     },
- *     collectionOperations={
- *          "get"
- *     },
- *     graphql={
- *         "item_query",
- *         "collection_query"
- *     },
- * )
- */
+#[ApiResource(
+    operations: [
+        new Get(provider: SystemConfigStateProvider::class),
+        new GetCollection(provider: SystemConfigStateProvider::class)
+    ],
+    graphQlOperations: [
+        new Query(provider: SystemConfigStateProvider::class),
+        new QueryCollection(provider: SystemConfigStateProvider::class)
+    ]
+)]
 class SystemConfig
 {
     /**
-     * @ApiProperty(identifier=true)
      * @var string|null
      */
-    protected $id;
+    #[ApiProperty(
+        identifier: true,
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The preference id',
+        ]
+    )]
+    protected ?string $id;
 
     /**
-     * @ApiProperty
      * @var string|null
      */
-    protected $value;
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'string',
+            'description' => 'The value',
+        ]
+    )]
+    protected ?string $value;
 
     /**
-     * @ApiProperty
      * @var array
      */
-    protected $items = [];
+    #[ApiProperty(
+        openapiContext: [
+            'type' => 'array',
+            'description' => 'The items',
+        ]
+    )]
+    protected array $items = [];
 
     /**
      * Get Id
@@ -72,7 +88,7 @@ class SystemConfig
      */
     public function getId(): ?string
     {
-        return $this->id;
+        return $this->id ?? null;
     }
 
     /**
@@ -93,7 +109,7 @@ class SystemConfig
      */
     public function getValue(): ?string
     {
-        return $this->value;
+        return $this->value ?? null;
     }
 
     /**
@@ -114,7 +130,7 @@ class SystemConfig
      */
     public function getItems(): array
     {
-        return $this->items;
+        return $this->items ?? [];
     }
 
     /**

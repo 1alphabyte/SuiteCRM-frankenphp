@@ -20,47 +20,30 @@ use function count;
 final class ExecutionResult
 {
     /** @var Query[] */
-    private $sql = [];
+    private array $sql = [];
 
     /**
      * Seconds
-     *
-     * @var float|null
      */
-    private $time;
+    private float|null $time = null;
 
-    /** @var float|null */
-    private $memory;
+    private float|null $memory = null;
 
-    /** @var bool */
-    private $skipped = false;
+    private bool $skipped = false;
 
-    /** @var bool */
-    private $error = false;
+    private bool $error = false;
 
-    /** @var Throwable|null */
-    private $exception;
+    private Throwable|null $exception = null;
 
-    /** @var DateTimeImmutable|null */
-    private $executedAt;
+    private int $state;
 
-    /** @var int */
-    private $state;
+    private Schema|null $toSchema = null;
 
-    /** @var Schema|null */
-    private $toSchema;
-
-    /** @var Version */
-    private $version;
-
-    /** @var string */
-    private $direction;
-
-    public function __construct(Version $version, string $direction = Direction::UP, ?DateTimeImmutable $executedAt = null)
-    {
-        $this->executedAt = $executedAt;
-        $this->version    = $version;
-        $this->direction  = $direction;
+    public function __construct(
+        private readonly Version $version,
+        private readonly string $direction = Direction::UP,
+        private DateTimeImmutable|null $executedAt = null,
+    ) {
     }
 
     public function getDirection(): string
@@ -68,7 +51,7 @@ final class ExecutionResult
         return $this->direction;
     }
 
-    public function getExecutedAt(): ?DateTimeImmutable
+    public function getExecutedAt(): DateTimeImmutable|null
     {
         return $this->executedAt;
     }
@@ -88,23 +71,19 @@ final class ExecutionResult
         return count($this->sql) !== 0;
     }
 
-    /**
-     * @return Query[]
-     */
+    /** @return Query[] */
     public function getSql(): array
     {
         return $this->sql;
     }
 
-    /**
-     * @param Query[] $sql
-     */
+    /** @param Query[] $sql */
     public function setSql(array $sql): void
     {
         $this->sql = $sql;
     }
 
-    public function getTime(): ?float
+    public function getTime(): float|null
     {
         return $this->time;
     }
@@ -114,7 +93,7 @@ final class ExecutionResult
         $this->time = $time;
     }
 
-    public function getMemory(): ?float
+    public function getMemory(): float|null
     {
         return $this->memory;
     }
@@ -134,7 +113,7 @@ final class ExecutionResult
         return $this->skipped;
     }
 
-    public function setError(bool $error, ?Throwable $exception = null): void
+    public function setError(bool $error, Throwable|null $exception = null): void
     {
         $this->error     = $error;
         $this->exception = $exception;
@@ -145,7 +124,7 @@ final class ExecutionResult
         return $this->error;
     }
 
-    public function getException(): ?Throwable
+    public function getException(): Throwable|null
     {
         return $this->exception;
     }

@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Doctrine\Bundle\MigrationsBundle;
 
@@ -9,14 +10,12 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
  * Bundle.
- *
- * @author Fabien Potencier <fabien@symfony.com>
- * @author Jonathan H. Wage <jonwage@gmail.com>
  */
 class DoctrineMigrationsBundle extends Bundle
 {
-    public function build(ContainerBuilder $builder)
+    /** @return void */
+    public function build(ContainerBuilder $container)
     {
-      $builder->addCompilerPass(new ConfigureDependencyFactoryPass());
+        $container->addCompilerPass(new ConfigureDependencyFactoryPass());
     }
 }

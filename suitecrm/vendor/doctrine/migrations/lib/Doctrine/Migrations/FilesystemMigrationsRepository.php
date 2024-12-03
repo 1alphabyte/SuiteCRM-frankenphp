@@ -23,20 +23,10 @@ use function class_exists;
  */
 class FilesystemMigrationsRepository implements MigrationsRepository
 {
-    /** @var bool */
-    private $migrationsLoaded = false;
-
-    /** @var array<string, string> */
-    private $migrationDirectories;
-
-    /** @var MigrationFinder */
-    private $migrationFinder;
-
-    /** @var MigrationFactory */
-    private $versionFactory;
+    private bool $migrationsLoaded = false;
 
     /** @var AvailableMigration[] */
-    private $migrations = [];
+    private array $migrations = [];
 
     /**
      * @param string[]              $classes
@@ -44,14 +34,10 @@ class FilesystemMigrationsRepository implements MigrationsRepository
      */
     public function __construct(
         array $classes,
-        array $migrationDirectories,
-        MigrationFinder $migrationFinder,
-        MigrationFactory $versionFactory
+        private readonly array $migrationDirectories,
+        private readonly MigrationFinder $migrationFinder,
+        private readonly MigrationFactory $versionFactory,
     ) {
-        $this->migrationDirectories = $migrationDirectories;
-        $this->migrationFinder      = $migrationFinder;
-        $this->versionFactory       = $versionFactory;
-
         $this->registerMigrations($classes);
     }
 
@@ -60,7 +46,7 @@ class FilesystemMigrationsRepository implements MigrationsRepository
         if (isset($this->migrations[(string) $version])) {
             throw DuplicateMigrationVersion::new(
                 (string) $version,
-                (string) $version
+                (string) $version,
             );
         }
 
@@ -145,7 +131,7 @@ class FilesystemMigrationsRepository implements MigrationsRepository
         foreach ($migrationDirectories as $namespace => $path) {
                 $migrations = $this->migrationFinder->findMigrations(
                     $path,
-                    $namespace
+                    $namespace,
                 );
                 $this->registerMigrations($migrations);
         }

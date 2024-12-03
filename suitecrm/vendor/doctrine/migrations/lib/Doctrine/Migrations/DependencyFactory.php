@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\Migrations;
 
+use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\Migrations\Configuration\Configuration;
 use Doctrine\Migrations\Configuration\Connection\ConnectionLoader;
@@ -51,6 +52,7 @@ use Symfony\Component\Stopwatch\Stopwatch;
 
 use function array_key_exists;
 use function call_user_func;
+use function method_exists;
 use function preg_quote;
 use function sprintf;
 
@@ -59,40 +61,29 @@ use function sprintf;
  */
 class DependencyFactory
 {
-    /** @psalm-var array<string, bool> */
-    private $inResolution = [];
+    /** @var array<string, bool> */
+    private array $inResolution = [];
 
-    /** @var Configuration */
-    private $configuration;
+    private Configuration|null $configuration = null;
 
     /** @var object[]|callable[] */
-    private $dependencies = [];
+    private array $dependencies = [];
 
-    /** @var Connection */
-    private $connection;
-
-    /** @var EntityManagerInterface|null */
-    private $em;
-
-    /** @var bool */
-    private $frozen = false;
-
-    /** @var ConfigurationLoader */
-    private $configurationLoader;
-
-    /** @var ConnectionLoader */
-    private $connectionLoader;
-
-    /** @var EntityManagerLoader|null */
-    private $emLoader;
+    private Connection|null $connection     = null;
+    private EntityManagerInterface|null $em = null;
+    private EventManager|null $eventManager = null;
+    private bool $frozen                    = false;
+    private ConfigurationLoader $configurationLoader;
+    private ConnectionLoader $connectionLoader;
+    private EntityManagerLoader|null $emLoader = null;
 
     /** @var callable[] */
-    private $factories = [];
+    private array $factories = [];
 
     public static function fromConnection(
         ConfigurationLoader $configurationLoader,
         ConnectionLoader $connectionLoader,
-        ?LoggerInterface $logger = null
+        LoggerInterface|null $logger = null,
     ): self {
         $dependencyFactory                      = new self($logger);
         $dependencyFactory->configurationLoader = $configurationLoader;
@@ -104,7 +95,7 @@ class DependencyFactory
     public static function fromEntityManager(
         ConfigurationLoader $configurationLoader,
         EntityManagerLoader $emLoader,
-        ?LoggerInterface $logger = null
+        LoggerInterface|null $logger = null,
     ): self {
         $dependencyFactory                      = new self($logger);
         $dependencyFactory->configurationLoader = $configurationLoader;
@@ -113,15 +104,13 @@ class DependencyFactory
         return $dependencyFactory;
     }
 
-    private function __construct(?LoggerInterface $logger)
+    private function __construct(LoggerInterface|null $logger)
     {
         if ($logger === null) {
             return;
         }
 
-        $this->setDefinition(LoggerInterface::class, static function () use ($logger): LoggerInterface {
-            return $logger;
-        });
+        $this->setDefinition(LoggerInterface::class, static fn (): LoggerInterface => $logger);
     }
 
     public function isFrozen(): bool
@@ -132,7 +121,6 @@ class DependencyFactory
     public function freeze(): void
     {
         $this->frozen = true;
-        $this->getConfiguration()->freeze();
     }
 
     private function assertNotFrozen(): void
@@ -168,7 +156,7 @@ class DependencyFactory
         if ($this->connection === null) {
             $this->connection = $this->hasEntityManager()
                 ? $this->getEntityManager()->getConnection()
-                : $this->connectionLoader->getConnection();
+                : $this->connectionLoader->getConnection($this->getConfiguration()->getConnectionName());
             $this->freeze();
         }
 
@@ -182,7 +170,7 @@ class DependencyFactory
                 throw MissingDependency::noEntityManager();
             }
 
-            $this->em = $this->emLoader->getEntityManager();
+            $this->em = $this->emLoader->getEntityManager($this->getConfiguration()->getEntityManagerName());
             $this->freeze();
         }
 
@@ -191,33 +179,25 @@ class DependencyFactory
 
     public function getVersionComparator(): Comparator
     {
-        return $this->getDependency(Comparator::class, static function (): AlphabeticalComparator {
-            return new AlphabeticalComparator();
-        });
+        return $this->getDependency(Comparator::class, static fn (): AlphabeticalComparator => new AlphabeticalComparator());
     }
 
     public function getLogger(): LoggerInterface
     {
-        return $this->getDependency(LoggerInterface::class, static function (): LoggerInterface {
-            return new NullLogger();
-        });
+        return $this->getDependency(LoggerInterface::class, static fn (): LoggerInterface => new NullLogger());
     }
 
     public function getEventDispatcher(): EventDispatcher
     {
-        return $this->getDependency(EventDispatcher::class, function (): EventDispatcher {
-            return new EventDispatcher(
-                $this->getConnection(),
-                $this->getConnection()->getEventManager()
-            );
-        });
+        return $this->getDependency(EventDispatcher::class, fn (): EventDispatcher => new EventDispatcher(
+            $this->getConnection(),
+            $this->getEventManager(),
+        ));
     }
 
     public function getClassNameGenerator(): ClassNameGenerator
     {
-        return $this->getDependency(ClassNameGenerator::class, static function (): ClassNameGenerator {
-            return new ClassNameGenerator();
-        });
+        return $this->getDependency(ClassNameGenerator::class, static fn (): ClassNameGenerator => new ClassNameGenerator());
     }
 
     public function getSchemaDumper(): SchemaDumper
@@ -232,69 +212,72 @@ class DependencyFactory
 
             return new SchemaDumper(
                 $this->getConnection()->getDatabasePlatform(),
-                $this->getConnection()->getSchemaManager(),
+                $this->getConnection()->createSchemaManager(),
                 $this->getMigrationGenerator(),
                 $this->getMigrationSqlGenerator(),
-                $excludedTables
+                $excludedTables,
             );
         });
     }
 
     private function getEmptySchemaProvider(): SchemaProvider
     {
-        return $this->getDependency(EmptySchemaProvider::class, function (): SchemaProvider {
-            return new EmptySchemaProvider(
-                $this->getConnection()->getSchemaManager()
-            );
-        });
+        return $this->getDependency(EmptySchemaProvider::class, fn (): SchemaProvider => new EmptySchemaProvider($this->connection->createSchemaManager()));
     }
 
-    private function getSchemaProvider(): SchemaProvider
+    public function hasSchemaProvider(): bool
+    {
+        try {
+            $this->getSchemaProvider();
+        } catch (MissingDependency) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function getSchemaProvider(): SchemaProvider
     {
         return $this->getDependency(SchemaProvider::class, function (): SchemaProvider {
-            return new OrmSchemaProvider($this->getEntityManager());
+            if ($this->hasEntityManager()) {
+                return new OrmSchemaProvider($this->getEntityManager());
+            }
+
+            throw MissingDependency::noSchemaProvider();
         });
     }
 
     public function getDiffGenerator(): DiffGenerator
     {
-        return $this->getDependency(DiffGenerator::class, function (): DiffGenerator {
-            return new DiffGenerator(
-                $this->getConnection()->getConfiguration(),
-                $this->getConnection()->getSchemaManager(),
-                $this->getSchemaProvider(),
-                $this->getConnection()->getDatabasePlatform(),
-                $this->getMigrationGenerator(),
-                $this->getMigrationSqlGenerator(),
-                $this->getEmptySchemaProvider()
-            );
-        });
+        return $this->getDependency(DiffGenerator::class, fn (): DiffGenerator => new DiffGenerator(
+            $this->getConnection()->getConfiguration(),
+            $this->getConnection()->createSchemaManager(),
+            $this->getSchemaProvider(),
+            $this->getConnection()->getDatabasePlatform(),
+            $this->getMigrationGenerator(),
+            $this->getMigrationSqlGenerator(),
+            $this->getEmptySchemaProvider(),
+        ));
     }
 
     public function getSchemaDiffProvider(): SchemaDiffProvider
     {
-        return $this->getDependency(SchemaDiffProvider::class, function (): LazySchemaDiffProvider {
-            return LazySchemaDiffProvider::fromDefaultProxyFactoryConfiguration(
-                new DBALSchemaDiffProvider(
-                    $this->getConnection()->getSchemaManager(),
-                    $this->getConnection()->getDatabasePlatform()
-                )
-            );
-        });
+        return $this->getDependency(SchemaDiffProvider::class, fn (): LazySchemaDiffProvider => new LazySchemaDiffProvider(
+            new DBALSchemaDiffProvider(
+                $this->getConnection()->createSchemaManager(),
+                $this->getConnection()->getDatabasePlatform(),
+            ),
+        ));
     }
 
     private function getFileBuilder(): FileBuilder
     {
-        return $this->getDependency(FileBuilder::class, static function (): FileBuilder {
-            return new ConcatenationFileBuilder();
-        });
+        return $this->getDependency(FileBuilder::class, static fn (): FileBuilder => new ConcatenationFileBuilder());
     }
 
     private function getParameterFormatter(): ParameterFormatter
     {
-        return $this->getDependency(ParameterFormatter::class, function (): ParameterFormatter {
-            return new InlineParameterFormatter($this->getConnection());
-        });
+        return $this->getDependency(ParameterFormatter::class, fn (): ParameterFormatter => new InlineParameterFormatter($this->getConnection()));
     }
 
     public function getMigrationsFinder(): MigrationFinder
@@ -309,27 +292,20 @@ class DependencyFactory
 
     public function getMigrationRepository(): MigrationsRepository
     {
-        return $this->getDependency(MigrationsRepository::class, function (): MigrationsRepository {
-            return new FilesystemMigrationsRepository(
-                $this->getConfiguration()->getMigrationClasses(),
-                $this->getConfiguration()->getMigrationDirectories(),
-                $this->getMigrationsFinder(),
-                $this->getMigrationFactory()
-            );
-        });
+        return $this->getDependency(MigrationsRepository::class, fn (): MigrationsRepository => new FilesystemMigrationsRepository(
+            $this->getConfiguration()->getMigrationClasses(),
+            $this->getConfiguration()->getMigrationDirectories(),
+            $this->getMigrationsFinder(),
+            $this->getMigrationFactory(),
+        ));
     }
 
     public function getMigrationFactory(): MigrationFactory
     {
-        return $this->getDependency(MigrationFactory::class, function (): MigrationFactory {
-            return new DbalMigrationFactory($this->getConnection(), $this->getLogger());
-        });
+        return $this->getDependency(MigrationFactory::class, fn (): MigrationFactory => new DbalMigrationFactory($this->getConnection(), $this->getLogger()));
     }
 
-    /**
-     * @param object|callable $service
-     */
-    public function setService(string $id, $service): void
+    public function setService(string $id, object|callable $service): void
     {
         $this->assertNotFrozen();
         $this->dependencies[$id] = $service;
@@ -337,147 +313,118 @@ class DependencyFactory
 
     public function getMetadataStorage(): MetadataStorage
     {
-        return $this->getDependency(MetadataStorage::class, function (): MetadataStorage {
-            return new TableMetadataStorage(
-                $this->getConnection(),
-                $this->getVersionComparator(),
-                $this->getConfiguration()->getMetadataStorageConfiguration(),
-                $this->getMigrationRepository()
-            );
-        });
+        return $this->getDependency(MetadataStorage::class, fn (): MetadataStorage => new TableMetadataStorage(
+            $this->getConnection(),
+            $this->getVersionComparator(),
+            $this->getConfiguration()->getMetadataStorageConfiguration(),
+            $this->getMigrationRepository(),
+        ));
     }
 
     private function getVersionExecutor(): Executor
     {
-        return $this->getDependency(Executor::class, function (): Executor {
-            return new DbalExecutor(
-                $this->getMetadataStorage(),
-                $this->getEventDispatcher(),
-                $this->getConnection(),
-                $this->getSchemaDiffProvider(),
-                $this->getLogger(),
-                $this->getParameterFormatter(),
-                $this->getStopwatch()
-            );
-        });
+        return $this->getDependency(Executor::class, fn (): Executor => new DbalExecutor(
+            $this->getMetadataStorage(),
+            $this->getEventDispatcher(),
+            $this->getConnection(),
+            $this->getSchemaDiffProvider(),
+            $this->getLogger(),
+            $this->getParameterFormatter(),
+            $this->getStopwatch(),
+        ));
     }
 
     public function getQueryWriter(): QueryWriter
     {
-        return $this->getDependency(QueryWriter::class, function (): QueryWriter {
-            return new FileQueryWriter(
-                $this->getFileBuilder(),
-                $this->getLogger()
-            );
-        });
+        return $this->getDependency(QueryWriter::class, fn (): QueryWriter => new FileQueryWriter(
+            $this->getFileBuilder(),
+            $this->getLogger(),
+        ));
     }
 
     public function getVersionAliasResolver(): AliasResolver
     {
-        return $this->getDependency(AliasResolver::class, function (): AliasResolver {
-            return new DefaultAliasResolver(
-                $this->getMigrationPlanCalculator(),
-                $this->getMetadataStorage(),
-                $this->getMigrationStatusCalculator()
-            );
-        });
+        return $this->getDependency(AliasResolver::class, fn (): AliasResolver => new DefaultAliasResolver(
+            $this->getMigrationPlanCalculator(),
+            $this->getMetadataStorage(),
+            $this->getMigrationStatusCalculator(),
+        ));
     }
 
     public function getMigrationStatusCalculator(): MigrationStatusCalculator
     {
-        return $this->getDependency(MigrationStatusCalculator::class, function (): MigrationStatusCalculator {
-            return new CurrentMigrationStatusCalculator(
-                $this->getMigrationPlanCalculator(),
-                $this->getMetadataStorage()
-            );
-        });
+        return $this->getDependency(MigrationStatusCalculator::class, fn (): MigrationStatusCalculator => new CurrentMigrationStatusCalculator(
+            $this->getMigrationPlanCalculator(),
+            $this->getMetadataStorage(),
+        ));
     }
 
     public function getMigrationPlanCalculator(): MigrationPlanCalculator
     {
-        return $this->getDependency(MigrationPlanCalculator::class, function (): MigrationPlanCalculator {
-            return new SortedMigrationPlanCalculator(
-                $this->getMigrationRepository(),
-                $this->getMetadataStorage(),
-                $this->getVersionComparator()
-            );
-        });
+        return $this->getDependency(MigrationPlanCalculator::class, fn (): MigrationPlanCalculator => new SortedMigrationPlanCalculator(
+            $this->getMigrationRepository(),
+            $this->getMetadataStorage(),
+            $this->getVersionComparator(),
+        ));
     }
 
     public function getMigrationGenerator(): Generator
     {
-        return $this->getDependency(Generator::class, function (): Generator {
-            return new Generator($this->getConfiguration());
-        });
+        return $this->getDependency(Generator::class, fn (): Generator => new Generator($this->getConfiguration()));
     }
 
     public function getMigrationSqlGenerator(): SqlGenerator
     {
-        return $this->getDependency(SqlGenerator::class, function (): SqlGenerator {
-            return new SqlGenerator(
-                $this->getConfiguration(),
-                $this->getConnection()->getDatabasePlatform()
-            );
-        });
+        return $this->getDependency(SqlGenerator::class, fn (): SqlGenerator => new SqlGenerator(
+            $this->getConfiguration(),
+            $this->getConnection()->getDatabasePlatform(),
+        ));
     }
 
     public function getConsoleInputMigratorConfigurationFactory(): MigratorConfigurationFactory
     {
-        return $this->getDependency(MigratorConfigurationFactory::class, function (): MigratorConfigurationFactory {
-            return new ConsoleInputMigratorConfigurationFactory(
-                $this->getConfiguration()
-            );
-        });
+        return $this->getDependency(MigratorConfigurationFactory::class, fn (): MigratorConfigurationFactory => new ConsoleInputMigratorConfigurationFactory(
+            $this->getConfiguration(),
+        ));
     }
 
     public function getMigrationStatusInfosHelper(): MigrationStatusInfosHelper
     {
-        return $this->getDependency(MigrationStatusInfosHelper::class, function (): MigrationStatusInfosHelper {
-            return new MigrationStatusInfosHelper(
-                $this->getConfiguration(),
-                $this->getConnection(),
-                $this->getVersionAliasResolver(),
-                $this->getMigrationPlanCalculator(),
-                $this->getMigrationStatusCalculator(),
-                $this->getMetadataStorage()
-            );
-        });
+        return $this->getDependency(MigrationStatusInfosHelper::class, fn (): MigrationStatusInfosHelper => new MigrationStatusInfosHelper(
+            $this->getConfiguration(),
+            $this->getConnection(),
+            $this->getVersionAliasResolver(),
+            $this->getMigrationPlanCalculator(),
+            $this->getMigrationStatusCalculator(),
+            $this->getMetadataStorage(),
+        ));
     }
 
     public function getMigrator(): Migrator
     {
-        return $this->getDependency(Migrator::class, function (): Migrator {
-            return new DbalMigrator(
-                $this->getConnection(),
-                $this->getEventDispatcher(),
-                $this->getVersionExecutor(),
-                $this->getLogger(),
-                $this->getStopwatch()
-            );
-        });
+        return $this->getDependency(Migrator::class, fn (): Migrator => new DbalMigrator(
+            $this->getConnection(),
+            $this->getEventDispatcher(),
+            $this->getVersionExecutor(),
+            $this->getLogger(),
+            $this->getStopwatch(),
+        ));
     }
 
     public function getStopwatch(): Stopwatch
     {
-        return $this->getDependency(Stopwatch::class, static function (): Stopwatch {
-            return new Stopwatch(true);
-        });
+        return $this->getDependency(Stopwatch::class, static fn (): Stopwatch => new Stopwatch(true));
     }
 
     public function getRollup(): Rollup
     {
-        return $this->getDependency(Rollup::class, function (): Rollup {
-            return new Rollup(
-                $this->getMetadataStorage(),
-                $this->getMigrationRepository()
-            );
-        });
+        return $this->getDependency(Rollup::class, fn (): Rollup => new Rollup(
+            $this->getMetadataStorage(),
+            $this->getMigrationRepository(),
+        ));
     }
 
-    /**
-     * @return mixed
-     */
-    private function getDependency(string $id, callable $callback)
+    private function getDependency(string $id, callable $callback): mixed
     {
         if (! isset($this->inResolution[$id]) && array_key_exists($id, $this->factories) && ! array_key_exists($id, $this->dependencies)) {
             $this->inResolution[$id] = true;
@@ -496,5 +443,23 @@ class DependencyFactory
     {
         $this->assertNotFrozen();
         $this->factories[$id] = $service;
+    }
+
+    private function getEventManager(): EventManager
+    {
+        if ($this->eventManager !== null) {
+            return $this->eventManager;
+        }
+
+        if ($this->hasEntityManager()) {
+            return $this->eventManager = $this->getEntityManager()->getEventManager();
+        }
+
+        if (method_exists(Connection::class, 'getEventManager')) {
+            // DBAL < 4
+            return $this->eventManager = $this->getConnection()->getEventManager();
+        }
+
+        return $this->eventManager = new EventManager();
     }
 }

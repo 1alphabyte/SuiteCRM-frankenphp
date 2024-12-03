@@ -1,6 +1,18 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 4.2.0 - 2023-12-29
+
+### Changed
+- Updated code to use PHP 8 syntax
+- PHP 8.1 is now the minimum required version
+- Updated dependencies to their latest versions
+
+## 4.1.1 – 2023-08-04
+
+### Fixed
+- [36: Add CS / SA files to .gitattributes](https://github.com/nikolaposa/version/pull/36)
+ 
 ## 4.1.0 – 2020-12-12
 
 - [35: Allow PHP 8 installations](https://github.com/nikolaposa/version/pull/35)
@@ -150,4 +162,4 @@ All notable changes to this project will be documented in this file.
 This release is abandoned, please consider upgrading to 2.x.
 
 
-[Unreleased]: https://github.com/nikolaposa/version/compare/4.1.0...HEAD
+[Unreleased]: https://github.com/nikolaposa/version/compare/4.2.0...HEAD
