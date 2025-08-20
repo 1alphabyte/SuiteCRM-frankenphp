@@ -31,7 +31,9 @@ import {Process, ProcessService} from '../../process.service';
 import {AppStateStore} from '../../../../store/app-state/app-state.store';
 import {MessageService} from '../../../message/message.service';
 import {AsyncActionHandler} from './async-action.model';
-import {Record, SearchCriteria, SortingSelection} from 'common';
+import {Record} from '../../../../common/record/record.model';
+import {SearchCriteria} from '../../../../common/views/list/search-criteria.model';
+import {SortingSelection} from '../../../../common/views/list/list-navigation.model';
 import {RedirectAsyncAction} from './actions/redirect/redirect.async-action';
 import {ExportAsyncAction} from './actions/export/export.async-action';
 import {NoopAsyncAction} from './actions/noop/noop.async-action';
@@ -83,9 +85,10 @@ export class AsyncActionService {
      * @param {string} actionName to submit
      * @param {string} data to send
      * @param {string} presetHandlerKey to use
+     * @param params
      * @returns {object} Observable<Process>
      */
-    public run(actionName: string, data: AsyncActionInput, presetHandlerKey: string = null): Observable<Process> {
+    public run(actionName: string, data: AsyncActionInput, presetHandlerKey: string = null, params: any = null): Observable<Process> {
         const options = {
             ...data
         };
@@ -140,8 +143,20 @@ export class AsyncActionService {
                         return of(null);
                     }
 
-                    this.message.addDangerMessageByKey('LBL_ACTION_ERROR');
                     this.appStateStore.updateLoading(actionName, false);
+
+                    if (params?.errorMessageLabel ?? false) {
+                        this.message.addDangerMessage(params?.errorMessageLabel);
+                        return of(null);
+                    }
+
+                    if (params?.errorMessageLabelKey ?? false) {
+                        this.message.addDangerMessageByKey(params?.errorMessageLabelKey, 'Unexpected error when calling action, please contact your system administrator.');
+                        return of(null);
+                    }
+
+                    this.message.addDangerMessageByKey('LBL_ACTION_ERROR',  'Unexpected error when calling action, please contact your system administrator.');
+
                     return of(null);
                 }),
             );

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace ApiPlatform\Doctrine\Odm\State;
 
 use ApiPlatform\Doctrine\Common\State\LinksHandlerTrait as CommonLinksHandlerTrait;
-use ApiPlatform\Exception\RuntimeException;
+use ApiPlatform\Metadata\Exception\RuntimeException;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Operation;
 use Doctrine\ODM\MongoDB\Aggregation\Builder;
@@ -92,14 +92,14 @@ trait LinksHandlerTrait
             }
 
             if (!$manager instanceof DocumentManager) {
-                throw new RuntimeException(sprintf('The manager for "%s" must be an instance of "%s".', $aggregationClass, DocumentManager::class));
+                throw new RuntimeException(\sprintf('The manager for "%s" must be an instance of "%s".', $aggregationClass, DocumentManager::class));
             }
         }
 
         $classMetadata = $manager->getClassMetadata($aggregationClass);
 
         if (!$classMetadata instanceof ClassMetadata) {
-            throw new RuntimeException(sprintf('The class metadata for "%s" must be an instance of "%s".', $aggregationClass, ClassMetadata::class));
+            throw new RuntimeException(\sprintf('The class metadata for "%s" must be an instance of "%s".', $aggregationClass, ClassMetadata::class));
         }
 
         $aggregation = $previousAggregationBuilder;
@@ -113,7 +113,7 @@ trait LinksHandlerTrait
 
         if ($toProperty) {
             foreach ($identifierProperties as $identifierProperty) {
-                $aggregation->match()->field(sprintf('%s.%s', $lookupPropertyAlias, 'id' === $identifierProperty ? '_id' : $identifierProperty))->equals($this->getIdentifierValue($identifiers, $hasCompositeIdentifiers ? $identifierProperty : null));
+                $aggregation->match()->field(\sprintf('%s.%s', $lookupPropertyAlias, 'id' === $identifierProperty ? '_id' : $identifierProperty))->equals($this->getIdentifierValue($identifiers, $hasCompositeIdentifiers ? $identifierProperty : null));
             }
         } else {
             foreach ($identifierProperties as $identifierProperty) {

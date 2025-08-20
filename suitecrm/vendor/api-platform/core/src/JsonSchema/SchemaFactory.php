@@ -42,6 +42,7 @@ final class SchemaFactory implements SchemaFactoryInterface, SchemaFactoryAwareI
     public function __construct(?TypeFactoryInterface $typeFactory, ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory, private readonly PropertyNameCollectionFactoryInterface $propertyNameCollectionFactory, private readonly PropertyMetadataFactoryInterface $propertyMetadataFactory, private readonly ?NameConverterInterface $nameConverter = null, ?ResourceClassResolverInterface $resourceClassResolver = null, private readonly ?array $distinctFormats = null, private ?DefinitionNameFactoryInterface $definitionNameFactory = null)
     {
         if ($typeFactory) {
+            trigger_deprecation('api-platform/core', '3.4', \sprintf('Injecting the "%s" inside "%s" is deprecated and "%s" will be removed in 4.x.', TypeFactoryInterface::class, self::class, TypeFactoryInterface::class));
             $this->typeFactory = $typeFactory;
         }
         if (!$definitionNameFactory) {
@@ -182,7 +183,8 @@ final class SchemaFactory implements SchemaFactoryInterface, SchemaFactoryAwareI
         $propertySchemaType = $propertySchema['type'] ?? false;
 
         $isUnknown = Schema::UNKNOWN_TYPE === $propertySchemaType
-            || ('array' === $propertySchemaType && Schema::UNKNOWN_TYPE === ($propertySchema['items']['type'] ?? null));
+            || ('array' === $propertySchemaType && Schema::UNKNOWN_TYPE === ($propertySchema['items']['type'] ?? null))
+            || ('object' === $propertySchemaType && Schema::UNKNOWN_TYPE === ($propertySchema['additionalProperties']['type'] ?? null));
 
         if (
             !$isUnknown && (
@@ -231,9 +233,18 @@ final class SchemaFactory implements SchemaFactoryInterface, SchemaFactoryAwareI
                 continue;
             }
 
+            if (false === $propertyMetadata->getGenId()) {
+                $subDefinitionName = $this->definitionNameFactory->create($className, $format, $className, null, $serializerContext);
+
+                if (isset($subSchema->getDefinitions()[$subDefinitionName])) {
+                    unset($subSchema->getDefinitions()[$subDefinitionName]['properties']['@id']);
+                }
+            }
+
             if ($isCollection) {
-                $propertySchema['items']['$ref'] = $subSchema['$ref'];
-                unset($propertySchema['items']['type']);
+                $key = ($propertySchema['type'] ?? null) === 'object' ? 'additionalProperties' : 'items';
+                $propertySchema[$key]['$ref'] = $subSchema['$ref'];
+                unset($propertySchema[$key]['type']);
                 break;
             }
 

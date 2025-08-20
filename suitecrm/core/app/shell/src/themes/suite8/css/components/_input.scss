@@ -58,6 +58,10 @@ input {
     -moz-appearance: none;
     appearance: none;
   }
+
+  #auth_code {
+    text-align: center;
+  }
 }
 
 @media all and (min-width: $breakpoint-medium) {

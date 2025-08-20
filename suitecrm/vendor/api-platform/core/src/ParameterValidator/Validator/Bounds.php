@@ -14,11 +14,16 @@ declare(strict_types=1);
 namespace ApiPlatform\ParameterValidator\Validator;
 
 /**
- * @deprecated use Parameter constraint instead
+ * @deprecated use \ApiPlatform\Metadata\Parameter::$constraints instead
  */
 final class Bounds implements ValidatorInterface
 {
     use CheckFilterDeprecationsTrait;
+
+    public function __construct()
+    {
+        trigger_deprecation('api-platform/core', '3.4', 'The class "%s" is deprecated, use "\ApiPlatform\Metadata\Parameter::$constraints" instead.', __CLASS__);
+    }
 
     /**
      * {@inheritdoc}
@@ -39,17 +44,17 @@ final class Bounds implements ValidatorInterface
 
         if (null !== $maximum) {
             if (($filterDescription['openapi']['exclusiveMaximum'] ?? $filterDescription['swagger']['exclusiveMaximum'] ?? false) && $value >= $maximum) {
-                $errorList[] = sprintf('Query parameter "%s" must be less than %s', $name, $maximum);
+                $errorList[] = \sprintf('Query parameter "%s" must be less than %s', $name, $maximum);
             } elseif ($value > $maximum) {
-                $errorList[] = sprintf('Query parameter "%s" must be less than or equal to %s', $name, $maximum);
+                $errorList[] = \sprintf('Query parameter "%s" must be less than or equal to %s', $name, $maximum);
             }
         }
 
         if (null !== $minimum) {
             if (($filterDescription['openapi']['exclusiveMinimum'] ?? $filterDescription['swagger']['exclusiveMinimum'] ?? false) && $value <= $minimum) {
-                $errorList[] = sprintf('Query parameter "%s" must be greater than %s', $name, $minimum);
+                $errorList[] = \sprintf('Query parameter "%s" must be greater than %s', $name, $minimum);
             } elseif ($value < $minimum) {
-                $errorList[] = sprintf('Query parameter "%s" must be greater than or equal to %s', $name, $minimum);
+                $errorList[] = \sprintf('Query parameter "%s" must be greater than or equal to %s', $name, $minimum);
             }
         }
 

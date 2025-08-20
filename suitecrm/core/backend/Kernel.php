@@ -29,6 +29,7 @@
 namespace App;
 
 use App\DependecyInjection\BackwardsCompatibility\LegacySAMLExtension;
+use App\DependecyInjection\Metadata\MetadataExtension;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
@@ -116,6 +117,7 @@ class Kernel extends BaseKernel
     {
         parent::build($container);
         $container->registerExtension(new LegacySAMLExtension());
+        $container->registerExtension(new MetadataExtension());
     }
 
     /**
@@ -125,7 +127,10 @@ class Kernel extends BaseKernel
     public function getLegacyRoute(Request $request): array
     {
         if ($this->container->has('legacy.route.handler')) {
-            return $this->container->get('legacy.route.handler')->getLegacyRoute($request);
+            $legacyRouteHandler = $this->container->get('legacy.route.handler');
+            $legacyRouteHandler->setCurrentDir(getcwd());
+
+            return $legacyRouteHandler->getLegacyRoute($request);
         }
 
         return [];

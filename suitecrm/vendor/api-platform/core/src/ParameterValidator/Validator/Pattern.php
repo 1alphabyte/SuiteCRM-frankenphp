@@ -14,11 +14,16 @@ declare(strict_types=1);
 namespace ApiPlatform\ParameterValidator\Validator;
 
 /**
- * @deprecated use Parameter constraint instead
+ * @deprecated use \ApiPlatform\Metadata\Parameter::$constraints instead
  */
 final class Pattern implements ValidatorInterface
 {
     use CheckFilterDeprecationsTrait;
+
+    public function __construct()
+    {
+        trigger_deprecation('api-platform/core', '3.4', 'The class "%s" is deprecated, use "\ApiPlatform\Metadata\Parameter::$constraints" instead.', __CLASS__);
+    }
 
     /**
      * {@inheritdoc}
@@ -36,7 +41,7 @@ final class Pattern implements ValidatorInterface
 
         if (null !== $pattern && !preg_match($pattern, $value)) {
             return [
-                sprintf('Query parameter "%s" must match pattern %s', $name, $pattern),
+                \sprintf('Query parameter "%s" must match pattern %s', $name, $pattern),
             ];
         }
 

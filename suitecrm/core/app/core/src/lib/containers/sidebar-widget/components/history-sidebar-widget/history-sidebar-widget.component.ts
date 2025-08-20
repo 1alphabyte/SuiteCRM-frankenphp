@@ -24,16 +24,15 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {AfterViewInit, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, OnDestroy, OnInit, signal, WritableSignal} from '@angular/core';
 import {HistoryTimelineAdapter} from './history-timeline.adapter.service';
 import {BaseWidgetComponent} from '../../../widgets/base-widget.model';
 import {LanguageStore} from '../../../../store/language/language.store';
 import {HistoryTimelineAdapterFactory} from './history-timeline.adapter.factory';
 import {combineLatestWith, Subscription, timer} from 'rxjs';
-import {debounce, map, tap} from 'rxjs/operators';
-import {floor} from 'lodash-es';
-import {CdkVirtualScrollViewport} from '@angular/cdk/scrolling';
+import {debounce, map} from 'rxjs/operators';
 import {ModuleNavigation} from "../../../../services/navigation/module-navigation/module-navigation.service";
+import {ButtonInterface} from "../../../../common/components/button/button.model";
 
 @Component({
     selector: 'scrm-history-timeline-widget',
@@ -42,8 +41,8 @@ import {ModuleNavigation} from "../../../../services/navigation/module-navigatio
     providers: [HistoryTimelineAdapter]
 })
 export class HistorySidebarWidgetComponent extends BaseWidgetComponent implements OnInit, AfterViewInit, OnDestroy {
-    @ViewChild(CdkVirtualScrollViewport) virtualScroll: CdkVirtualScrollViewport;
 
+    public initialLoad: WritableSignal<boolean> = signal(false);
     public adapter: HistoryTimelineAdapter;
     private subscription = new Subscription();
 
@@ -85,7 +84,7 @@ export class HistorySidebarWidgetComponent extends BaseWidgetComponent implement
             }),
             );
 
-        const debouncedReload = reload$.pipe(debounce(() => timer(1000)));
+        const debouncedReload = reload$.pipe(debounce(() => timer(400)));
 
         this.subscription.add(debouncedReload.subscribe(reload => {
             if (reload) {
@@ -106,21 +105,14 @@ export class HistorySidebarWidgetComponent extends BaseWidgetComponent implement
         return this.languageStore.getFieldLabel('LBL_QUICK_HISTORY');
     }
 
-    /**
-     * @returns {void} Timeline Entry
-     * @description {checks if end of the scroll is reached to make a backend call for next set of timeline entries}
-     */
-    onScroll(): void {
-
-        if (!this.adapter) {
-            return;
-        }
-
-        const scrollOffset = this.virtualScroll.measureScrollOffset('bottom');
-
-        if (floor(scrollOffset) === 0) {
-            this.adapter.fetchTimelineEntries(false);
-        }
+    getLoadMoreButton(): ButtonInterface {
+        return {
+            klass: 'load-more-button btn btn-link btn-sm',
+            labelKey: 'LBL_LOAD_MORE',
+            onClick: () => {
+                this.adapter.fetchTimelineEntries(false);
+            }
+        } as ButtonInterface;
     }
 
     redirectLink(module: string, id: string) {

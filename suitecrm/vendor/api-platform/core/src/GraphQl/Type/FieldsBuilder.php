@@ -15,13 +15,16 @@ namespace ApiPlatform\GraphQl\Type;
 
 use ApiPlatform\Doctrine\Odm\State\Options as ODMOptions;
 use ApiPlatform\Doctrine\Orm\State\Options;
+use ApiPlatform\GraphQl\Exception\InvalidTypeException;
 use ApiPlatform\GraphQl\Resolver\Factory\ResolverFactory;
 use ApiPlatform\GraphQl\Resolver\Factory\ResolverFactoryInterface;
 use ApiPlatform\GraphQl\Type\Definition\TypeInterface;
+use ApiPlatform\Metadata\FilterInterface;
 use ApiPlatform\Metadata\GraphQl\Mutation;
 use ApiPlatform\Metadata\GraphQl\Operation;
 use ApiPlatform\Metadata\GraphQl\Query;
 use ApiPlatform\Metadata\GraphQl\Subscription;
+use ApiPlatform\Metadata\InflectorInterface;
 use ApiPlatform\Metadata\Property\Factory\PropertyMetadataFactoryInterface;
 use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
@@ -35,9 +38,9 @@ use GraphQL\Type\Definition\NullableType;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use GraphQL\Type\Definition\WrappingType;
 use Psr\Container\ContainerInterface;
-use Symfony\Component\Config\Definition\Exception\InvalidTypeException;
 use Symfony\Component\PropertyInfo\Type;
 use Symfony\Component\Serializer\NameConverter\AdvancedNameConverterInterface;
+use Symfony\Component\Serializer\NameConverter\MetadataAwareNameConverter;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
 /**
@@ -49,13 +52,13 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
 {
     private readonly ContextAwareTypeBuilderInterface|TypeBuilderEnumInterface|TypeBuilderInterface $typeBuilder;
 
-    public function __construct(private readonly PropertyNameCollectionFactoryInterface $propertyNameCollectionFactory, private readonly PropertyMetadataFactoryInterface $propertyMetadataFactory, private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory, private readonly ResourceClassResolverInterface $resourceClassResolver, private readonly TypesContainerInterface $typesContainer, ContextAwareTypeBuilderInterface|TypeBuilderEnumInterface|TypeBuilderInterface $typeBuilder, private readonly TypeConverterInterface $typeConverter, private readonly ResolverFactoryInterface $itemResolverFactory, private readonly ?ResolverFactoryInterface $collectionResolverFactory, private readonly ?ResolverFactoryInterface $itemMutationResolverFactory, private readonly ?ResolverFactoryInterface $itemSubscriptionResolverFactory, private readonly ContainerInterface $filterLocator, private readonly Pagination $pagination, private readonly ?NameConverterInterface $nameConverter, private readonly string $nestingSeparator)
+    public function __construct(private readonly PropertyNameCollectionFactoryInterface $propertyNameCollectionFactory, private readonly PropertyMetadataFactoryInterface $propertyMetadataFactory, private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory, private readonly ResourceClassResolverInterface $resourceClassResolver, private readonly TypesContainerInterface $typesContainer, ContextAwareTypeBuilderInterface|TypeBuilderEnumInterface|TypeBuilderInterface $typeBuilder, private readonly TypeConverterInterface $typeConverter, private readonly ResolverFactoryInterface $itemResolverFactory, private readonly ?ResolverFactoryInterface $collectionResolverFactory, private readonly ?ResolverFactoryInterface $itemMutationResolverFactory, private readonly ?ResolverFactoryInterface $itemSubscriptionResolverFactory, private readonly ContainerInterface $filterLocator, private readonly Pagination $pagination, private readonly ?NameConverterInterface $nameConverter, private readonly string $nestingSeparator, private readonly ?InflectorInterface $inflector = new Inflector())
     {
         if ($typeBuilder instanceof TypeBuilderInterface) {
-            @trigger_error(sprintf('$typeBuilder argument of FieldsBuilder implementing "%s" is deprecated since API Platform 3.1. It has to implement "%s" instead.', TypeBuilderInterface::class, TypeBuilderEnumInterface::class), \E_USER_DEPRECATED);
+            @trigger_error(\sprintf('$typeBuilder argument of FieldsBuilder implementing "%s" is deprecated since API Platform 3.1. It has to implement "%s" instead.', TypeBuilderInterface::class, TypeBuilderEnumInterface::class), \E_USER_DEPRECATED);
         }
         if ($typeBuilder instanceof TypeBuilderEnumInterface) {
-            @trigger_error(sprintf('$typeBuilder argument of TypeConverter implementing "%s" is deprecated since API Platform 3.3. It has to implement "%s" instead.', TypeBuilderEnumInterface::class, ContextAwareTypeBuilderInterface::class), \E_USER_DEPRECATED);
+            @trigger_error(\sprintf('$typeBuilder argument of TypeConverter implementing "%s" is deprecated since API Platform 3.3. It has to implement "%s" instead.', TypeBuilderEnumInterface::class, ContextAwareTypeBuilderInterface::class), \E_USER_DEPRECATED);
         }
         $this->typeBuilder = $typeBuilder;
     }
@@ -112,7 +115,7 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
             $extraArgs = $this->resolveResourceArgs($operation->getExtraArgs() ?? [], $operation);
             $configuration['args'] = $args ?: $configuration['args'] ?? $fieldConfiguration['args'] + $extraArgs;
 
-            return [Inflector::pluralize($fieldName) => array_merge($fieldConfiguration, $configuration)];
+            return [$this->inflector->pluralize($fieldName) => array_merge($fieldConfiguration, $configuration)];
         }
 
         return [];
@@ -143,7 +146,7 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
     {
         $subscriptionFields = [];
         $resourceType = new Type(Type::BUILTIN_TYPE_OBJECT, true, $resourceClass);
-        $description = $operation->getDescription() ?? sprintf('Subscribes to the action event of a %s.', $operation->getShortName());
+        $description = $operation->getDescription() ?? \sprintf('Subscribes to the action event of a %s.', $operation->getShortName());
 
         if ($fieldConfiguration = $this->getResourceFieldConfiguration(null, $description, $operation->getDeprecationReason(), $resourceType, $resourceClass, false, $operation)) {
             $fieldConfiguration['args'] += ['input' => $this->getResourceFieldConfiguration(null, null, $operation->getDeprecationReason(), $resourceType, $resourceClass, true, $operation)];
@@ -284,45 +287,10 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
     {
         foreach ($args as $id => $arg) {
             if (!isset($arg['type'])) {
-                throw new \InvalidArgumentException(sprintf('The argument "%s" of the custom operation "%s" in %s needs a "type" option.', $id, $operation->getName(), $operation->getShortName()));
+                throw new \InvalidArgumentException(\sprintf('The argument "%s" of the custom operation "%s" in %s needs a "type" option.', $id, $operation->getName(), $operation->getShortName()));
             }
 
             $args[$id]['type'] = $this->typeConverter->resolveType($arg['type']);
-        }
-
-        /*
-         * This is @experimental, read the comment on the parameterToObjectType function as additional information.
-         */
-        foreach ($operation->getParameters() ?? [] as $parameter) {
-            $key = $parameter->getKey();
-
-            if (str_contains($key, ':property')) {
-                if (!($filterId = $parameter->getFilter()) || !$this->filterLocator->has($filterId)) {
-                    continue;
-                }
-
-                $parsedKey = explode('[:property]', $key);
-                $flattenFields = [];
-                foreach ($this->filterLocator->get($filterId)->getDescription($operation->getClass()) as $key => $value) {
-                    $values = [];
-                    parse_str($key, $values);
-                    if (isset($values[$parsedKey[0]])) {
-                        $values = $values[$parsedKey[0]];
-                    }
-
-                    $name = key($values);
-                    $flattenFields[] = ['name' => $name, 'required' => $value['required'] ?? null, 'description' => $value['description'] ?? null, 'leafs' => $values[$name], 'type' => $value['type'] ?? 'string'];
-                }
-
-                $args[$parsedKey[0]] = $this->parameterToObjectType($flattenFields, $parsedKey[0]);
-                continue;
-            }
-
-            $args[$key] = ['type' => GraphQLType::string()];
-
-            if ($parameter->getRequired()) {
-                $args[$key]['type'] = GraphQLType::nonNull($args[$key]['type']);
-            }
         }
 
         return $args;
@@ -446,12 +414,15 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
 
             $args = [];
 
-            if (!$input && !$rootOperation instanceof Mutation && !$rootOperation instanceof Subscription && !$isStandardGraphqlType && $isCollectionType) {
-                if (!$this->isEnumClass($resourceClass) && $this->pagination->isGraphQlEnabled($resourceOperation)) {
-                    $args = $this->getGraphQlPaginationArgs($resourceOperation);
-                }
+            if (!$input && !$rootOperation instanceof Mutation && !$rootOperation instanceof Subscription && !$isStandardGraphqlType) {
+                if ($isCollectionType) {
+                    if (!$this->isEnumClass($resourceClass) && $this->pagination->isGraphQlEnabled($resourceOperation)) {
+                        $args = $this->getGraphQlPaginationArgs($resourceOperation);
+                    }
 
-                $args = $this->getFilterArgs($args, $resourceClass, $rootResource, $resourceOperation, $rootOperation, $property, $depth);
+                    $args = $this->getFilterArgs($args, $resourceClass, $rootResource, $resourceOperation, $rootOperation, $property, $depth);
+                    $args = $this->getParameterArgs($rootOperation, $args);
+                }
             }
 
             if ($this->itemResolverFactory instanceof ResolverFactory) {
@@ -484,6 +455,52 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
         }
 
         return null;
+    }
+
+    /*
+     * This function is @experimental, read the comment on the parameterToObjectType function for additional information.
+     * @experimental
+     */
+    private function getParameterArgs(Operation $operation, array $args = []): array
+    {
+        foreach ($operation->getParameters() ?? [] as $parameter) {
+            $key = $parameter->getKey();
+
+            if (!str_contains($key, ':property')) {
+                $args[$key] = ['type' => GraphQLType::string()];
+
+                if ($parameter->getRequired()) {
+                    $args[$key]['type'] = GraphQLType::nonNull($args[$key]['type']);
+                }
+
+                continue;
+            }
+
+            if (!($filterId = $parameter->getFilter()) || !$this->filterLocator->has($filterId)) {
+                continue;
+            }
+
+            $filter = $this->filterLocator->get($filterId);
+            $parsedKey = explode('[:property]', $key);
+            $flattenFields = [];
+
+            if ($filter instanceof FilterInterface) {
+                foreach ($filter->getDescription($operation->getClass()) as $name => $value) {
+                    $values = [];
+                    parse_str($name, $values);
+                    if (isset($values[$parsedKey[0]])) {
+                        $values = $values[$parsedKey[0]];
+                    }
+
+                    $name = key($values);
+                    $flattenFields[] = ['name' => $name, 'required' => $value['required'] ?? null, 'description' => $value['description'] ?? null, 'leafs' => $values[$name], 'type' => $value['type'] ?? 'string'];
+                }
+
+                $args[$parsedKey[0]] = $this->parameterToObjectType($flattenFields, $parsedKey[0]);
+            }
+        }
+
+        return $args;
     }
 
     private function getGraphQlPaginationArgs(Operation $queryOperation): array
@@ -543,11 +560,11 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
 
             $entityClass = $resourceClass;
             if ($options = $resourceOperation->getStateOptions()) {
-                if ($options instanceof Options && $options->getEntityClass()) {
+                if (class_exists(Options::class) && $options instanceof Options && $options->getEntityClass()) {
                     $entityClass = $options->getEntityClass();
                 }
 
-                if ($options instanceof ODMOptions && $options->getDocumentClass()) {
+                if (class_exists(ODMOptions::class) && $options instanceof ODMOptions && $options->getDocumentClass()) {
                     $entityClass = $options->getDocumentClass();
                 }
             }
@@ -648,12 +665,12 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
         $graphqlType = $this->typeConverter->convertType($type, $input, $rootOperation, $resourceClass, $rootResource, $property, $depth);
 
         if (null === $graphqlType) {
-            throw new InvalidTypeException(sprintf('The type "%s" is not supported.', $type->getBuiltinType()));
+            throw new InvalidTypeException(\sprintf('The type "%s" is not supported.', $type->getBuiltinType()));
         }
 
         if (\is_string($graphqlType)) {
             if (!$this->typesContainer->has($graphqlType)) {
-                throw new InvalidTypeException(sprintf('The GraphQL type %s is not valid. Valid types are: %s. Have you registered this type by implementing %s?', $graphqlType, implode(', ', array_keys($this->typesContainer->all())), TypeInterface::class));
+                throw new InvalidTypeException(\sprintf('The GraphQL type %s is not valid. Valid types are: %s. Have you registered this type by implementing %s?', $graphqlType, implode(', ', array_keys($this->typesContainer->all())), TypeInterface::class));
             }
 
             $graphqlType = $this->typesContainer->get($graphqlType);
@@ -682,7 +699,7 @@ final class FieldsBuilder implements FieldsBuilderInterface, FieldsBuilderEnumIn
         if (null === $this->nameConverter) {
             return $property;
         }
-        if ($this->nameConverter instanceof AdvancedNameConverterInterface) {
+        if ($this->nameConverter instanceof AdvancedNameConverterInterface || $this->nameConverter instanceof MetadataAwareNameConverter) {
             return $this->nameConverter->normalize($property, $resourceClass);
         }
 

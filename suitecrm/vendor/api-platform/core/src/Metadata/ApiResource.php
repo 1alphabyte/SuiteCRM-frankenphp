@@ -22,7 +22,7 @@ use ApiPlatform\State\OptionsInterface;
  *
  * The API Resource attribute declares the behaviors attached to a Resource inside API Platform.
  * This class is immutable, and if you set a value yourself, API Platform will not override the value.
- * The API Resource helps sharing options with operations.
+ * The API Resource helps to share options with operations.
  *
  * Read more about how metadata works [here](/docs/in-depth/metadata).
  *
@@ -106,7 +106,7 @@ class ApiResource extends Metadata
          *       'jsonapi' => ['application/vnd.api+json'],
          *       'json' =>    ['application/json'],
          *       'xml' =>     ['application/xml', 'text/xml'],
-         *       'yaml' =>    ['application/x-yaml'],
+         *       'yaml' =>    ['application/yaml'],
          *       'csv' =>     ['text/csv'],
          *       'html' =>    ['text/html'],
          *       'myformat' =>['application/vnd.myformat'],
@@ -960,7 +960,7 @@ class ApiResource extends Metadata
         $provider = null,
         $processor = null,
         protected ?OptionsInterface $stateOptions = null,
-        protected array|Parameters|null $parameters = null,
+        array|Parameters|null $parameters = null,
         protected array $extraProperties = [],
     ) {
         parent::__construct(
@@ -1385,19 +1385,6 @@ class ApiResource extends Metadata
     {
         $self = clone $this;
         $self->exceptionToStatus = $exceptionToStatus;
-
-        return $self;
-    }
-
-    public function getQueryParameterValidationEnabled(): ?bool
-    {
-        return $this->queryParameterValidationEnabled;
-    }
-
-    public function withQueryParameterValidationEnabled(bool $queryParameterValidationEnabled): self
-    {
-        $self = clone $this;
-        $self->queryParameterValidationEnabled = $queryParameterValidationEnabled;
 
         return $self;
     }

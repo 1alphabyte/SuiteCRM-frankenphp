@@ -15,8 +15,8 @@ namespace ApiPlatform\JsonApi\Serializer;
 
 use ApiPlatform\Api\IriConverterInterface as LegacyIriConverterInterface;
 use ApiPlatform\Api\ResourceClassResolverInterface as LegacyResourceClassResolverInterface;
-use ApiPlatform\Exception\ItemNotFoundException;
 use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\Exception\ItemNotFoundException;
 use ApiPlatform\Metadata\IriConverterInterface;
 use ApiPlatform\Metadata\Property\Factory\PropertyMetadataFactoryInterface;
 use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface;
@@ -94,8 +94,8 @@ final class ItemNormalizer extends AbstractItemNormalizer
         }
 
         $context = $this->initContext($resourceClass, $context);
-        $iri = $this->iriConverter->getIriFromResource($object, UrlGeneratorInterface::ABS_PATH, $context['operation'] ?? null, $context);
-        $context['iri'] = $iri;
+
+        $iri = $context['iri'] ??= $this->iriConverter->getIriFromResource($object, UrlGeneratorInterface::ABS_PATH, $context['operation'] ?? null, $context);
         $context['object'] = $object;
         $context['format'] = $format;
         $context['api_normalize'] = true;
@@ -256,7 +256,7 @@ final class ItemNormalizer extends AbstractItemNormalizer
 
         if (null === $relatedObject || isset($context['api_included'])) {
             if (!$this->serializer instanceof NormalizerInterface) {
-                throw new LogicException(sprintf('The injected serializer must be an instance of "%s".', NormalizerInterface::class));
+                throw new LogicException(\sprintf('The injected serializer must be an instance of "%s".', NormalizerInterface::class));
             }
 
             $normalizedRelatedObject = $this->serializer->normalize($relatedObject, $format, $context);
@@ -422,7 +422,7 @@ final class ItemNormalizer extends AbstractItemNormalizer
             // Many to many relationship
             foreach ($attributeValue as $attributeValueElement) {
                 if (!isset($attributeValueElement['data'])) {
-                    throw new UnexpectedValueException(sprintf('The JSON API attribute \'%s\' must contain a "data" key.', $relationshipName));
+                    throw new UnexpectedValueException(\sprintf('The JSON API attribute \'%s\' must contain a "data" key.', $relationshipName));
                 }
                 unset($attributeValueElement['data']['attributes']);
                 $data[$relationshipName]['data'][] = $attributeValueElement['data'];

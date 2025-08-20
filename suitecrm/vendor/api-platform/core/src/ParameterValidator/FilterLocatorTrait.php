@@ -13,18 +13,16 @@ declare(strict_types=1);
 
 namespace ApiPlatform\ParameterValidator;
 
-use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\FilterInterface;
 use Psr\Container\ContainerInterface;
 
 /**
  * Manipulates filters with a backward compatibility between the new filter locator and the deprecated filter collection.
  *
- * @author Baptiste Meyer <baptiste.meyer@gmail.com>
- *
- * @deprecated
- *
  * @internal
+ *
+ * @author Baptiste Meyer <baptiste.meyer@gmail.com>
  */
 trait FilterLocatorTrait
 {
@@ -38,7 +36,7 @@ trait FilterLocatorTrait
         if ($filterLocator instanceof ContainerInterface || (null === $filterLocator && $allowNull)) {
             $this->filterLocator = $filterLocator;
         } else {
-            throw new InvalidArgumentException(sprintf('The "$filterLocator" argument is expected to be an implementation of the "%s" interface%s.', ContainerInterface::class, $allowNull ? ' or null' : ''));
+            throw new InvalidArgumentException(\sprintf('The "$filterLocator" argument is expected to be an implementation of the "%s" interface%s.', ContainerInterface::class, $allowNull ? ' or null' : ''));
         }
     }
 

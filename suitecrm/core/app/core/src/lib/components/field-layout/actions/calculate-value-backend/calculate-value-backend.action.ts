@@ -25,18 +25,6 @@
  */
 
 import {Injectable} from '@angular/core';
-import {
-    Action,
-    deepClone,
-    Field,
-    MapEntry,
-    Record,
-    RecordMapper,
-    RecordMapperRegistry,
-    StringArrayMap,
-    StringArrayMatrix,
-    ViewMode
-} from 'common';
 import {FieldActionData, FieldActionHandler} from "../field.action";
 import {AsyncActionInput, AsyncActionService} from "../../../../services/process/processes/async-action/async-action";
 import {ActiveFieldsChecker} from "../../../../services/condition-operators/active-fields-checker.service";
@@ -44,6 +32,15 @@ import {MessageService} from "../../../../services/message/message.service";
 import {ProcessService} from "../../../../services/process/process.service";
 import {BaseSaveRecordMapper} from "../../../../store/record/record-mappers/base-save.record-mapper";
 import {take} from "rxjs/operators";
+import {ViewMode} from "../../../../common/views/view.model";
+import {RecordMapperRegistry} from "../../../../common/record/record-mappers/record-mapper.registry";
+import {StringArrayMap} from "../../../../common/types/string-map";
+import {StringArrayMatrix} from "../../../../common/types/string-matrix";
+import {Record} from "../../../../common/record/record.model";
+import {deepClone} from "../../../../common/utils/object-utils";
+import {MapEntry} from "../../../../common/types/overridable-map";
+import {RecordMapper} from "../../../../common/record/record-mappers/record-mapper.model";
+import {Field} from "../../../../common/record/field.model";
 
 
 @Injectable({
@@ -101,12 +98,12 @@ export class CalculateValueBackendAction extends FieldActionHandler {
                 record: baseRecord
             } as AsyncActionInput;
 
-            field.loading = true;
+            field.loading.set(true)
 
             this.processService.submit(processType, options).pipe(take(1)).subscribe((result) => {
 
                 const value = result?.data?.value ?? null;
-                field.loading = false;
+                field.loading.set(false)
 
                 if (value === null) {
                     this.messages.addDangerMessageByKey("ERR_FIELD_LOGIC_BACKEND_CALCULATION");
@@ -115,7 +112,7 @@ export class CalculateValueBackendAction extends FieldActionHandler {
                 this.updateValue(field, value.toString(), record);
 
             }, (error) => {
-                field.loading = false;
+                field.loading.set(false)
                 this.messages.addDangerMessageByKey("ERR_FIELD_LOGIC_BACKEND_CALCULATION");
             });
         }

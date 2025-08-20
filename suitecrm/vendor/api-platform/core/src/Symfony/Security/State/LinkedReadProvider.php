@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Symfony\Security\State;
 
-use ApiPlatform\Exception\InvalidIdentifierException;
-use ApiPlatform\Exception\InvalidUriVariableException;
+use ApiPlatform\Metadata\Exception\InvalidIdentifierException;
+use ApiPlatform\Metadata\Exception\InvalidUriVariableException;
 use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Operation;
@@ -33,7 +33,7 @@ final class LinkedReadProvider implements ProviderInterface
     public function __construct(
         private readonly ProviderInterface $decorated,
         private readonly ProviderInterface $locator,
-        private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory
+        private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory,
     ) {
     }
 

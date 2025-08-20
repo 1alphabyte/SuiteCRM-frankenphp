@@ -25,7 +25,8 @@
  */
 
 import {Injectable} from '@angular/core';
-import {RecordMapperRegistry, ViewFieldDefinition, ObjectMap} from 'common';
+import {RecordMapperRegistry} from '../../../../common/record/record-mappers/record-mapper.registry';
+import {ViewFieldDefinition} from '../../../../common/metadata/metadata.model';
 import {SavedFilterRecordStore} from './saved-filter-record.store';
 import {FieldManager} from '../../../../services/record/field/field.manager';
 import {LanguageStore} from '../../../../store/language/language.store';
@@ -35,6 +36,7 @@ import {MessageService} from '../../../../services/message/message.service';
 import {RecordManager} from '../../../../services/record/record.manager';
 import {BaseSaveRecordMapper} from '../../../../store/record/record-mappers/base-save.record-mapper';
 import {Observable} from 'rxjs';
+import {ObjectMap} from "../../../../common/types/object-map";
 
 @Injectable({
     providedIn: 'root',

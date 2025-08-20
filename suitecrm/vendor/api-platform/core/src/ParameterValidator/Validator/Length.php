@@ -14,11 +14,16 @@ declare(strict_types=1);
 namespace ApiPlatform\ParameterValidator\Validator;
 
 /**
- * @deprecated use Parameter constraint instead
+ * @deprecated use \ApiPlatform\Metadata\Parameter::$constraints instead
  */
 final class Length implements ValidatorInterface
 {
     use CheckFilterDeprecationsTrait;
+
+    public function __construct()
+    {
+        trigger_deprecation('api-platform/core', '3.4', 'The class "%s" is deprecated, use "\ApiPlatform\Metadata\Parameter::$constraints" instead.', __CLASS__);
+    }
 
     /**
      * {@inheritdoc}
@@ -38,11 +43,11 @@ final class Length implements ValidatorInterface
         $errorList = [];
 
         if (null !== $maxLength && mb_strlen($value) > $maxLength) {
-            $errorList[] = sprintf('Query parameter "%s" length must be lower than or equal to %s', $name, $maxLength);
+            $errorList[] = \sprintf('Query parameter "%s" length must be lower than or equal to %s', $name, $maxLength);
         }
 
         if (null !== $minLength && mb_strlen($value) < $minLength) {
-            $errorList[] = sprintf('Query parameter "%s" length must be greater than or equal to %s', $name, $minLength);
+            $errorList[] = \sprintf('Query parameter "%s" length must be greater than or equal to %s', $name, $minLength);
         }
 
         return $errorList;

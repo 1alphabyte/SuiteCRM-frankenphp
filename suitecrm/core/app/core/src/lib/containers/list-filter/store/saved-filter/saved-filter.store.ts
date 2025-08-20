@@ -26,17 +26,12 @@
 
 import {inject, Injectable} from '@angular/core';
 import {BehaviorSubject, combineLatestWith, forkJoin, Observable, of, Subscription} from 'rxjs';
-import {
-    ColumnDefinition,
-    deepClone,
-    ObjectMap,
-    Record,
-    SearchCriteria,
-    SearchMetaFieldMap,
-    ViewContext,
-    ViewFieldDefinition,
-    ViewMode
-} from 'common';
+import {Record} from '../../../../common/record/record.model';
+import {SearchCriteria} from '../../../../common/views/list/search-criteria.model';
+import {ColumnDefinition, SearchMetaFieldMap} from '../../../../common/metadata/list.metadata.model';
+import {ViewContext, ViewMode} from '../../../../common/views/view.model';
+import {ViewFieldDefinition} from '../../../../common/metadata/metadata.model';
+import {deepClone} from '../../../../common/utils/object-utils';
 import {catchError, distinctUntilChanged, filter, finalize, map, startWith, take, tap} from 'rxjs/operators';
 import {StateStore} from '../../../../store/state';
 import {MetadataStore, RecordViewMetadata} from '../../../../store/metadata/metadata.store.service';
@@ -49,6 +44,7 @@ import {LanguageStore} from '../../../../store/language/language.store';
 import {SavedFilterRecordStore} from './saved-filter-record.store';
 import {SavedFilterRecordStoreFactory} from './saved-filter-record.store.factory';
 import {RecordValidationHandler} from "../../../../services/record/validation/record-validation.handler";
+import {ObjectMap} from "../../../../common/types/object-map";
 
 const initialState: FilterContainerState = {
     module: '',

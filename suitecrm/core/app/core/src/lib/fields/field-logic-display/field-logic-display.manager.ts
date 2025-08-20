@@ -27,7 +27,10 @@
 import {Injectable} from '@angular/core';
 import {BaseActionManager} from '../../services/actions/base-action-manager.service';
 import {FieldLogicDisplayActionData} from './field-logic-display.action';
-import {Action, ActionContext, Field, Record, ViewMode, DisplayType} from 'common';
+import {Action, ActionContext} from '../../common/actions/action.model';
+import {DisplayType, Field} from '../../common/record/field.model';
+import {Record} from '../../common/record/record.model';
+import {ViewMode} from '../../common/views/view.model';
 import {DisplayTypeAction} from './display-type/display-type.action';
 
 @Injectable({
@@ -55,7 +58,7 @@ export class FieldLogicDisplayManager extends BaseActionManager<FieldLogicDispla
         });
 
         if (!validModeLogic || !validModeLogic.length) {
-            field.display = toDisplay;
+            field.display.set(toDisplay);
             return;
         }
 
@@ -90,7 +93,7 @@ export class FieldLogicDisplayManager extends BaseActionManager<FieldLogicDispla
             toDisplay = 'show';
         }
 
-        field.display = toDisplay;
+        field.display.set(toDisplay);
 
     }
 

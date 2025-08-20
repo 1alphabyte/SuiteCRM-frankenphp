@@ -300,7 +300,8 @@ function make_sugar_config(&$sugar_config)
             '110', '143', '993', '995'
         ],
         'web_to_lead_allowed_redirect_hosts' => [],
-        'trusted_hosts' => []
+        'trusted_hosts' => [],
+        'installed' => true
     );
 }
 
@@ -610,7 +611,8 @@ function get_sugar_config_defaults(): array
             '110', '143', '993', '995'
         ],
         'web_to_lead_allowed_redirect_hosts' => [],
-        'trusted_hosts' => []
+        'trusted_hosts' => [],
+        'installed' => true
     ];
 
     if (!is_object($locale)) {
@@ -1766,7 +1768,10 @@ function create_guid()
     $microTime = microtime();
     list($a_dec, $a_sec) = explode(' ', $microTime);
 
-    $dec_hex = dechex($a_dec * 1000000);
+    $dec_hex_number = $a_dec * 1000000;
+
+    $dec_hex = dechex($dec_hex_number);
+
     $sec_hex = dechex($a_sec);
 
     ensure_length($dec_hex, 5);
@@ -2119,7 +2124,10 @@ function sugar_die($error_message, $exit_code = 1)
 {
     global $focus;
     sugar_cleanup();
-    echo $error_message;
+
+    if (!empty($GLOBALS['disable_echos'])) {
+        echo $error_message;
+    }
     throw new Exception($error_message, $exit_code);
 }
 
@@ -2415,7 +2423,7 @@ function clean_xss($str, $cleanImg = true)
         $sugar_config['email_xss'] = getDefaultXssTags();
     }
 
-    $xsstags = unserialize(base64_decode($sugar_config['email_xss']));
+    $xsstags = unserialize(base64_decode($sugar_config['email_xss']), ['allowed_classes' => false]);
 
     // cn: bug 13079 - "on\w" matched too many non-events (cONTact, strONG, etc.)
     $jsEvents = 'onblur|onfocus|oncontextmenu|onresize|onscroll|onunload|ondblclick|onclick|';
@@ -3172,8 +3180,7 @@ function get_emails_by_assign_or_link($params)
     // directly assigned emails
     $return_array['join'][] = "
         SELECT
-            eb.email_id,
-            'direct' source
+            eb.email_id
         FROM
             emails_beans eb
         WHERE
@@ -3185,8 +3192,7 @@ function get_emails_by_assign_or_link($params)
     // Related by directly by email
     $return_array['join'][] = "
         SELECT DISTINCT
-            eear.email_id,
-            'relate' source
+            eear.email_id
         FROM
             emails_email_addr_rel eear
         INNER JOIN
@@ -3208,8 +3214,7 @@ function get_emails_by_assign_or_link($params)
         // Assigned to contacts
         $return_array['join'][] = "
             SELECT DISTINCT
-                eb.email_id,
-                'contact' source
+                eb.email_id
             FROM
                 emails_beans eb
             $rel_join AND link_bean.id = eb.bean_id
@@ -3220,8 +3225,7 @@ function get_emails_by_assign_or_link($params)
         // Related by email to linked contact
         $return_array['join'][] = "
             SELECT DISTINCT
-                eear.email_id,
-                'relate_contact' source
+                eear.email_id
             FROM
                 emails_email_addr_rel eear
             INNER JOIN
@@ -3245,7 +3249,7 @@ function get_emails_by_assign_or_link($params)
 
     if ($bean->object_name == 'Case' && !empty($bean->case_number)) {
         $where = str_replace('%1', $bean->case_number, (string) $bean->getEmailSubjectMacro());
-        $return_array['where'] .= "\n AND (email_ids.source = 'direct' OR emails.name LIKE '%$where%')";
+        $return_array['where'] .= "\n AND (emails.name LIKE '%$where%')";
     }
 
     return $return_array;
@@ -3761,10 +3765,12 @@ function sugar_cleanup($exit = false)
         //this is not an ajax call and the user preference error flag is set, so reset the flag and print js to flash message
         $err_mess = $app_strings['ERROR_USER_PREFS'];
         $_SESSION['USER_PREFRENCE_ERRORS'] = false;
-        echo "
-		<script>
-			ajaxStatus.flashStatus('$err_mess',7000);
-		</script>";
+        if (!empty($GLOBALS['disable_echos'])) {
+            echo "
+            <script>
+                ajaxStatus.flashStatus('$err_mess',7000);
+            </script>";
+        }
     }
 
     pre_login_check();
@@ -3863,14 +3869,13 @@ function display_stack_trace($textOnly = false)
 {
     $stack = debug_backtrace();
 
-    echo "\n\n display_stack_trace caller, file: " . $stack[0]['file'] . ' line#: ' . $stack[0]['line'];
+    $out = "\n\n display_stack_trace caller, file: " . $stack[0]['file'] . ' line#: ' . $stack[0]['line'];
 
     if (!$textOnly) {
-        echo '<br>';
+        $out .= '<br>';
     }
 
     $first = true;
-    $out = '';
 
     foreach ($stack as $item) {
         $file = '';
@@ -3920,11 +3925,10 @@ function display_stack_trace($textOnly = false)
         }
     }
 
-    echo $out;
     return $out;
 }
 
-function StackTraceErrorHandler($errno, $errstr, $errfile, $errline, $errcontext)
+function StackTraceErrorHandler($errno, $errstr, $errfile, $errline, $errcontext = null)
 {
     $error_msg = " $errstr occurred in <b>$errfile</b> on line $errline [" . date('Y-m-d H:i:s') . ']';
 
@@ -3979,9 +3983,10 @@ function StackTraceErrorHandler($errno, $errstr, $errfile, $errline, $errcontext
             $halt_script = false;
             break;
     }
+
     $error_msg = '<b>[' . $type . ']</b> ' . $error_msg;
-    echo $error_msg;
     $trace = display_stack_trace();
+
     ErrorMessage::log("Catch an error: $error_msg \nTrace info:\n" . $trace);
     if ($halt_script) {
         exit(1);
@@ -5304,6 +5309,10 @@ function sugar_ucfirst($string, $charset = 'UTF-8')
  */
 function unencodeMultienum($string)
 {
+    if (is_null($string)){
+        $string = [];
+    }
+
     if (is_array($string)) {
         return $string;
     }
@@ -5996,7 +6005,7 @@ function sugar_unserialize($value)
         return false;
     }
 
-    return unserialize($value);
+    return unserialize($value, ['allowed_classes' => false]);
 }
 
 define('DEFAULT_UTIL_SUITE_ENCODING', 'UTF-8');

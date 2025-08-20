@@ -29,7 +29,8 @@ import {BaseFieldComponent} from './base-field.component';
 import {DataTypeFormatter} from '../../services/formatters/data-type.formatter.service';
 import {StandardFieldRegistry} from '../standard-field.registry';
 import {RecordManager} from '../../services/record/record.manager';
-import {emptyObject, Field, FieldAttribute, FieldDefinition} from 'common';
+import {emptyObject} from '../../common/utils/object-utils';
+import {Field, FieldDefinition, FieldAttribute} from '../../common/record/field.model';
 import set from 'lodash-es/set';
 import {FieldLogicManager} from '../field-logic/field-logic.manager';
 import {FieldLogicDisplayManager} from '../field-logic-display/field-logic-display.manager';
@@ -73,7 +74,7 @@ export class BaseComposite extends BaseFieldComponent implements OnInit, OnDestr
         const fields: Field[] = [];
 
         this.field.definition.layout.forEach(name => {
-            if (!this.field.attributes[name] || this.field.attributes[name].display === 'none') {
+            if (!this.field.attributes[name] || this.field.attributes[name]?.display() === 'none') {
                 return;
             }
             fields.push(this.field.attributes[name]);

@@ -38,6 +38,7 @@ import {
     ExtensionLoader,
     InstallAuthGuard,
     InstallViewComponent,
+    isFalse,
     ListComponent,
     LoginAuthGuard,
     LoginUiComponent,
@@ -46,10 +47,11 @@ import {
     SystemNameService,
     BaseRouteService,
     LogoutComponent,
-    AdminPanelComponent
+    TwoFactorAuthGuard,
+    AdminPanelComponent,
+    TwoFactorComponent
 } from 'core';
 import {take} from 'rxjs/operators';
-import {isFalse} from 'common';
 
 @Injectable()
 export class AppInit {
@@ -164,6 +166,24 @@ export class AppInit {
                         ]
                     });
 
+                    routes.push({
+                        path: 'users/2fa-config',
+                        component: TwoFactorComponent,
+                        canActivate: [TwoFactorAuthGuard],
+                        runGuardsAndResolvers: 'always',
+                        resolve: {
+                            metadata: BaseMetadataResolver
+                        },
+                        data: {
+                            reuseRoute: false,
+                            checkSession: true,
+                            load: {
+                                navigation: false,
+                                preferences: false,
+                                languageStrings: ['appStrings']
+                            }
+                        }
+                    });
                     routes.push(loggedOutConfig);
 
                     Object.keys(configRoutes).forEach(routeName => {

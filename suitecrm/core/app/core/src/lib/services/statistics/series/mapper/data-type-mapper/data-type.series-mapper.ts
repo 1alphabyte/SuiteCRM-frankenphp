@@ -27,7 +27,9 @@
 import {Injectable} from '@angular/core';
 import {DataTypeUnitConverter} from '../../../../unit-converters/data-type.unit-converter.service';
 import {SeriesVisitor} from '../series-traverser.service';
-import {DataItem, ObjectMap} from 'common';
+import {DataItem} from '../../../../../common/containers/chart/chart.model';
+import {ObjectMap} from '../../../../../common/types/object-map';
+import {DataTypeFormatter} from '../../../../formatters/data-type.formatter.service';
 
 @Injectable({
     providedIn: 'root'
@@ -35,7 +37,7 @@ import {DataItem, ObjectMap} from 'common';
 export class DataTypeSeriesMapper implements SeriesVisitor {
 
 
-    constructor(protected converter: DataTypeUnitConverter) {
+    constructor(protected converter: DataTypeUnitConverter, protected formatter: DataTypeFormatter) {
     }
 
     visit(item: DataItem, options?: ObjectMap): void {
@@ -47,7 +49,9 @@ export class DataTypeSeriesMapper implements SeriesVisitor {
             return;
         }
 
-        const numberValue = parseFloat(item.value.toString());
+        // Convert from user format to internal format before parsing to handle custom separators
+        const internalValue = this.formatter.toInternalFormat(dataType, item.value.toString());
+        const numberValue = parseFloat(internalValue.toString());
 
         if (!isFinite(numberValue)) {
             return;

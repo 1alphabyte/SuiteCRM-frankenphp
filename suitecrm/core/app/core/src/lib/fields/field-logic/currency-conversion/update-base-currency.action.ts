@@ -25,7 +25,11 @@
  */
 
 import {Injectable} from '@angular/core';
-import {Action, Field, Record, ViewMode} from 'common';
+import {Action} from '../../../common/actions/action.model';
+import {Field} from '../../../common/record/field.model';
+import {Record} from '../../../common/record/record.model';
+import {ViewMode} from '../../../common/views/view.model';
+
 import {FieldLogicActionData, FieldLogicActionHandler} from '../field-logic.action';
 import {CurrencyService} from '../../../services/currency/currency.service';
 
@@ -77,5 +81,9 @@ export class UpdateBaseCurrencyAction extends FieldLogicActionHandler {
         field.formControl.setValue(baseValue.toString());
         // re-validate the parent form-control after value update
         record.formGroup.updateValueAndValidity({onlySelf: true, emitEvent: true});
+    }
+
+    getTriggeringStatus(): string[] {
+        return ['onAnyLogic'];
     }
 }

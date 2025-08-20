@@ -49,7 +49,7 @@ final class DocumentationAction
         private readonly ?ProviderInterface $provider = null,
         private readonly ?ProcessorInterface $processor = null,
         ?Negotiator $negotiator = null,
-        private readonly array $documentationFormats = [OpenApiNormalizer::JSON_FORMAT => ['application/vnd.openapi+json'], OpenApiNormalizer::FORMAT => ['application/json']]
+        private readonly array $documentationFormats = [OpenApiNormalizer::JSON_FORMAT => ['application/vnd.openapi+json'], OpenApiNormalizer::FORMAT => ['application/json']],
     ) {
         $this->negotiator = $negotiator ?? new Negotiator();
     }
@@ -99,9 +99,6 @@ final class DocumentationAction
 
             if ('html' === $format) {
                 $operation = $operation->withProcessor('api_platform.swagger_ui.processor')->withWrite(true);
-            }
-            if ('json' === $format) {
-                trigger_deprecation('api-platform/core', '3.2', 'The "json" format is too broad, use "jsonopenapi" instead.');
             }
 
             return $this->processor->process($this->provider->provide($operation, [], $context), $operation, [], $context);

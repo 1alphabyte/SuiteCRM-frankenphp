@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Hydra\Serializer;
 
-use ApiPlatform\Api\UrlGeneratorInterface;
+use ApiPlatform\Api\UrlGeneratorInterface as LegacyUrlGeneratorInterface;
+use ApiPlatform\JsonLd\Serializer\HydraPrefixTrait;
+use ApiPlatform\Metadata\UrlGeneratorInterface;
 use ApiPlatform\Serializer\AbstractConstraintViolationListNormalizer;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 
@@ -24,9 +26,10 @@ use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
  */
 final class ConstraintViolationListNormalizer extends AbstractConstraintViolationListNormalizer
 {
+    use HydraPrefixTrait;
     public const FORMAT = 'jsonld';
 
-    public function __construct(private readonly UrlGeneratorInterface $urlGenerator, ?array $serializePayloadFields = null, ?NameConverterInterface $nameConverter = null)
+    public function __construct(private readonly UrlGeneratorInterface|LegacyUrlGeneratorInterface $urlGenerator, ?array $serializePayloadFields = null, ?NameConverterInterface $nameConverter = null, private readonly ?array $defaultContext = [])
     {
         parent::__construct($serializePayloadFields, $nameConverter);
     }
@@ -43,11 +46,13 @@ final class ConstraintViolationListNormalizer extends AbstractConstraintViolatio
             return $violations;
         }
 
+        $hydraPrefix = $this->getHydraPrefix($context + $this->defaultContext);
+
         return [
             '@context' => $this->urlGenerator->generate('api_jsonld_context', ['shortName' => 'ConstraintViolationList']),
             '@type' => 'ConstraintViolationList',
-            'hydra:title' => $context['title'] ?? 'An error occurred',
-            'hydra:description' => $messages ? implode("\n", $messages) : (string) $object,
+            $hydraPrefix.'title' => $context['title'] ?? 'An error occurred',
+            $hydraPrefix.'description' => $messages ? implode("\n", $messages) : (string) $object,
             'violations' => $violations,
         ];
     }

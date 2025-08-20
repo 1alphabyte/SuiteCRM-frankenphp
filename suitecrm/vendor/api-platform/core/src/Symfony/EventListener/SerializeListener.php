@@ -15,8 +15,8 @@ namespace ApiPlatform\Symfony\EventListener;
 
 use ApiPlatform\Doctrine\Odm\State\Options as ODMOptions;
 use ApiPlatform\Doctrine\Orm\State\Options;
-use ApiPlatform\Exception\RuntimeException;
 use ApiPlatform\Metadata\Error;
+use ApiPlatform\Metadata\Exception\RuntimeException;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\State\ProcessorInterface;
 use ApiPlatform\State\ResourceList;
@@ -142,7 +142,7 @@ final class SerializeListener
             return;
         }
 
-        if ($controllerResult instanceof ValidationException) {
+        if ($controllerResult instanceof ValidationException && class_exists(ErrorFormatGuesser::class)) {
             $format = ErrorFormatGuesser::guessErrorFormat($request, $this->errorFormats);
             $previousOperation = $request->attributes->get('_api_previous_operation');
             if (!($previousOperation?->getExtraProperties()['rfc_7807_compliant_errors'] ?? false)) {
@@ -197,7 +197,7 @@ final class SerializeListener
         }
 
         if (!$this->serializer instanceof EncoderInterface) {
-            throw new RuntimeException(sprintf('The serializer must implement the "%s" interface.', EncoderInterface::class));
+            throw new RuntimeException(\sprintf('The serializer must implement the "%s" interface.', EncoderInterface::class));
         }
 
         $event->setControllerResult($this->serializer->encode($controllerResult, $request->getRequestFormat()));

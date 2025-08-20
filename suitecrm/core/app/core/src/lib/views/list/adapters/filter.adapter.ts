@@ -25,7 +25,7 @@
  */
 
 import {Injectable} from '@angular/core';
-import {SearchMetaFieldMap} from 'common';
+import {SearchMetaFieldMap} from '../../../common/metadata/list.metadata.model';
 import {map} from 'rxjs/operators';
 import {ListViewStore} from '../store/list-view/list-view.store';
 import {Metadata} from '../../../store/metadata/metadata.store.service';
@@ -55,11 +55,11 @@ export class FilterAdapter {
                     const searchMeta = meta.search;
 
                     let type = 'advanced';
-                    if (!searchMeta.layout.advanced) {
+                    if (!searchMeta?.layout?.advanced) {
                         type = 'basic';
                     }
 
-                    return searchMeta.layout[type];
+                    return searchMeta?.layout[type];
                 })
             ),
             listFields: this.store.metadata.listView.fields,

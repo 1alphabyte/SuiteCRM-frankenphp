@@ -37,10 +37,10 @@ final class DeserializeProvider implements ProviderInterface
         private readonly ?ProviderInterface $decorated,
         private readonly SerializerInterface $serializer,
         private readonly LegacySerializerContextBuilderInterface|SerializerContextBuilderInterface $serializerContextBuilder,
-        private ?TranslatorInterface $translator = null
+        private ?TranslatorInterface $translator = null,
     ) {
         if (null === $this->translator) {
-            $this->translator = new class() implements TranslatorInterface, LocaleAwareInterface {
+            $this->translator = new class implements TranslatorInterface, LocaleAwareInterface {
                 use TranslatorTrait;
             };
             $this->translator->setLocale('en');
@@ -90,7 +90,7 @@ final class DeserializeProvider implements ProviderInterface
         }
 
         try {
-            return $this->serializer->deserialize((string) $request->getContent(), $operation->getClass(), $format, $serializerContext);
+            return $this->serializer->deserialize((string) $request->getContent(), $serializerContext['deserializer_type'] ?? $operation->getClass(), $format, $serializerContext);
         } catch (PartialDenormalizationException $e) {
             if (!class_exists(ConstraintViolationList::class)) {
                 throw $e;

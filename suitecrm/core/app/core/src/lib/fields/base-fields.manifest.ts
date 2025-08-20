@@ -46,6 +46,7 @@ import {BooleanDetailFieldComponent} from './boolean/templates/detail/boolean.co
 import {EmailListFieldsModule} from './email/templates/list/email.module';
 import {VarcharFilterFieldComponent} from './varchar/templates/filter/filter.component';
 import {CurrencyDetailFieldComponent} from './currency/templates/detail/currency.component';
+import {CurrencyEditFieldComponent} from './currency/templates/edit/currency.component';
 import {EnumEditFieldModule} from './enum/templates/edit/enum.module';
 import {MultiEnumDetailFieldModule} from './multienum/templates/detail/multienum.module';
 import {FileDetailFieldModule} from './file/templates/detail/file.module';
@@ -77,6 +78,8 @@ import {MultiEnumEditFieldModule} from './multienum/templates/edit/multienum.mod
 import {IntDetailFieldModule} from './int/templates/detail/int.module';
 import {FullNameDetailFieldsComponent} from './fullname/templates/detail/fullname.component';
 import {BooleanEditFieldComponent} from './boolean/templates/edit/boolean.component';
+import {BooleanCheckboxFilterFieldComponent} from "./boolean/templates/checkbox-filter/boolean-checkbox.component";
+import {BooleanCheckboxFilterFieldModule} from "./boolean/templates/checkbox-filter/boolean-checkbox.module";
 import {DateTimeEditFieldComponent} from './datetime/templates/edit/datetime.component';
 import {VarcharDetailFieldModule} from './varchar/templates/detail/varchar.module';
 import {FieldComponentMap} from './field.model';
@@ -105,6 +108,7 @@ import {IconListFieldModule} from "./icon/templates/detail/icon.module";
 import {IconDetailFieldComponent} from "./icon/templates/detail/icon.component";
 import {TextListFieldModule} from './text/templates/list/text.module';
 import {TextListFieldComponent} from './text/templates/list/text.component';
+import {CurrencyEditFieldModule} from "./currency/templates/edit/currency.module";
 
 export const baseFieldModules = [
     VarcharDetailFieldModule,
@@ -125,6 +129,7 @@ export const baseFieldModules = [
     DateTimeFilterFieldModule,
     UrlDetailFieldModule,
     CurrencyDetailFieldModule,
+    CurrencyEditFieldModule,
     EmailListFieldsModule,
     TextDetailFieldModule,
     TextEditFieldModule,
@@ -144,6 +149,7 @@ export const baseFieldModules = [
     MultiEnumFilterFieldModule,
     BooleanDetailFieldModule,
     BooleanEditFieldModule,
+    BooleanCheckboxFilterFieldModule,
     HtmlDetailFieldModule,
     TinymceDetailFieldModule,
     TinymceEditFieldModule
@@ -167,6 +173,7 @@ export const baseFieldComponents = [
     UrlDetailFieldComponent,
     IconDetailFieldComponent,
     CurrencyDetailFieldComponent,
+    CurrencyEditFieldComponent,
     EmailListFieldsComponent,
     TextDetailFieldComponent,
     TextEditFieldComponent,
@@ -186,6 +193,7 @@ export const baseFieldComponents = [
     MultiEnumFilterFieldComponent,
     BooleanDetailFieldComponent,
     BooleanEditFieldComponent,
+    BooleanCheckboxFilterFieldComponent,
     HtmlDetailFieldComponent,
     TinymceDetailFieldComponent,
     TinymceEditFieldComponent
@@ -216,7 +224,7 @@ export const baseViewFieldsMap: FieldComponentMap = {
     'datetime.list': DateTimeDetailFieldComponent,
     'datetime.detail': DateTimeDetailFieldComponent,
     'datetime.edit': DateTimeEditFieldComponent,
-    'datetime.filter': DateFilterFieldComponent,
+    'datetime.filter': DateTimeFilterFieldComponent,
     'url.list': UrlDetailFieldComponent,
     'url.detail': UrlDetailFieldComponent,
     'icon.detail': IconDetailFieldComponent,
@@ -226,6 +234,7 @@ export const baseViewFieldsMap: FieldComponentMap = {
     'link.detail': UrlDetailFieldComponent,
     'currency.list': CurrencyDetailFieldComponent,
     'currency.detail': CurrencyDetailFieldComponent,
+    'currency.edit': CurrencyEditFieldComponent,
     'email.list': EmailListFieldsComponent,
     'email.detail': EmailListFieldsComponent,
     'text.detail': TextDetailFieldComponent,
@@ -269,6 +278,8 @@ export const baseViewFieldsMap: FieldComponentMap = {
     'bool.detail': BooleanDetailFieldComponent,
     'bool.edit': BooleanEditFieldComponent,
     'bool.filter': MultiEnumFilterFieldComponent,
+    'bool-checkbox.filter': BooleanCheckboxFilterFieldComponent,
+    'html-native.detail': HtmlDetailFieldComponent,
     'html.detail': TinymceDetailFieldComponent,
     'html.edit': TinymceEditFieldComponent
 };

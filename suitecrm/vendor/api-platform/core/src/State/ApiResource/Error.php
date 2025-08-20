@@ -25,7 +25,6 @@ use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\WebLink\Link;
 
 #[ErrorResource(
-    types: ['hydra:Error'],
     openapi: false,
     uriVariables: ['status'],
     uriTemplate: '/errors/{status}',
@@ -79,7 +78,7 @@ class Error extends \Exception implements ProblemExceptionInterface, HttpExcepti
         private ?string $instance = null,
         private string $type = 'about:blank',
         private array $headers = [],
-        ?\Throwable $previous = null
+        ?\Throwable $previous = null,
     ) {
         parent::__construct($title, $status, $previous);
 
@@ -98,21 +97,7 @@ class Error extends \Exception implements ProblemExceptionInterface, HttpExcepti
     #[Groups(['trace'])]
     public ?array $originalTrace = null;
 
-    #[SerializedName('hydra:title')]
     #[Groups(['jsonld'])]
-    public function getHydraTitle(): ?string
-    {
-        return $this->title;
-    }
-
-    #[SerializedName('hydra:description')]
-    #[Groups(['jsonld'])]
-    public function getHydraDescription(): ?string
-    {
-        return $this->detail;
-    }
-
-    #[SerializedName('description')]
     public function getDescription(): ?string
     {
         return $this->detail;

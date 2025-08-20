@@ -15,7 +15,7 @@ namespace ApiPlatform\Doctrine\Orm;
 
 use ApiPlatform\Doctrine\Orm\Util\QueryBuilderHelper;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
-use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 use Doctrine\ORM\Mapping\ClassMetadata as ClassMetadataInfo;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -73,7 +73,7 @@ trait PropertyHelperTrait
         }
 
         if (null === $alias) {
-            throw new InvalidArgumentException(sprintf('Cannot add joins for property "%s" - property is not nested.', $property));
+            throw new InvalidArgumentException(\sprintf('Cannot add joins for property "%s" - property is not nested.', $property));
         }
 
         return [$alias, $propertyParts['field'], $propertyParts['associations']];

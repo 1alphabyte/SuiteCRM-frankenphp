@@ -24,11 +24,13 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Injectable} from '@angular/core';
+import {Injectable, signal, WritableSignal} from '@angular/core';
 import {HistoryTimelineEntry} from './history-sidebar-widget.model';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {HistoryTimelineStore} from '../../store/history-timeline/history-timeline.store';
-import {emptyObject, Record, ViewContext} from 'common';
+import {emptyObject} from '../../../../common/utils/object-utils';
+import {Record} from '../../../../common/record/record.model';
+import {ViewContext} from '../../../../common/views/view.model';
 import {take} from 'rxjs/operators';
 import {HistoryTimelineStoreFactory} from './history-timeline.store.factory';
 
@@ -36,7 +38,10 @@ export type ActivityTypes = 'calls' | 'tasks' | 'meetings' | 'history' | 'audit'
 
 @Injectable()
 export class HistoryTimelineAdapter {
-    loading = false;
+    loading: WritableSignal<boolean> = signal(false);
+    initializing: WritableSignal<boolean> = signal(true);
+    firstLoad: WritableSignal<boolean> = signal(true);
+    allLoaded: WritableSignal<boolean> = signal(false);
 
     cache: HistoryTimelineEntry[] = [];
     dataStream = new BehaviorSubject<HistoryTimelineEntry[]>(this.cache);
@@ -68,7 +73,7 @@ export class HistoryTimelineAdapter {
      */
     fetchTimelineEntries(reload: boolean): Observable<HistoryTimelineEntry[]> {
 
-        if (this.loading === true) {
+        if (this.loading() === true) {
             return;
         }
 
@@ -77,9 +82,11 @@ export class HistoryTimelineAdapter {
         }
         this.store.initSearchCriteria(this.cache.length, this.defaultPageSize);
 
-        this.loading = true;
+        this.loading.set(true);
+        this.initializing.set(false)
         this.store.load(false).pipe(take(1)).subscribe(value => {
-            this.loading = false;
+            this.loading.set(false);
+            this.firstLoad.set(false);
             const records: Record [] = value.records;
 
             if (!emptyObject(records)) {
@@ -89,6 +96,9 @@ export class HistoryTimelineAdapter {
                     this.cache.push(this.buildTimelineEntry(records[key]));
                 });
             }
+
+            this.allLoaded.set((value?.pagination?.pageLast ?? 0) < (value?.pagination?.pageSize ?? 0));
+
             this.dataStream.next([...this.cache]);
         });
         return this.dataStream$;
@@ -133,15 +143,21 @@ export class HistoryTimelineAdapter {
             color: gridColor,
             title: {
                 type: 'varchar',
-                value: record.attributes.name
+                value: record.attributes.name,
+                loading: signal(false),
+                display: signal('default')
             },
             user: {
                 type: 'varchar',
                 value: record.attributes.assigned_user_name.user_name,
+                loading:  signal(false),
+                display: signal('default')
             },
             date: {
                 type: 'datetime',
                 value: record.attributes.date_end,
+                loading:  signal(false),
+                display: signal('default')
             },
             record
         } as HistoryTimelineEntry;
@@ -150,7 +166,9 @@ export class HistoryTimelineAdapter {
 
             timelineEntry.description = {
                 type: 'html',
-                value: record.attributes.description
+                value: record.attributes.description,
+                loading: signal(false),
+                display: signal('default')
             };
         }
         return timelineEntry;

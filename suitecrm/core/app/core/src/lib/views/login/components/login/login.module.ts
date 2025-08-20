@@ -34,6 +34,7 @@ import {AngularSvgIconModule} from 'angular-svg-icon';
 import {ButtonLoadingUiModule} from '../../../../directives/button-loading/button-loading.module';
 import {LogoUiModule} from '../../../../components/logo/logo.module';
 import {ImageModule} from '../../../../components/image/image.module';
+import {TwoFactorCheckModule} from "../../../2fa/components/2fa-check/2fa-check.module";
 
 @NgModule({
     declarations: [
@@ -49,7 +50,8 @@ import {ImageModule} from '../../../../components/image/image.module';
         CommonModule,
         AngularSvgIconModule,
         ImageModule,
-        ButtonLoadingUiModule
+        ButtonLoadingUiModule,
+        TwoFactorCheckModule
     ]
 })
 export class LoginUiModule {

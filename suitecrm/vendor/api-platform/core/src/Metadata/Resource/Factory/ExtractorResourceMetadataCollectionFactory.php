@@ -53,14 +53,14 @@ final class ExtractorResourceMetadataCollectionFactory implements ResourceMetada
             return $resourceMetadataCollection;
         }
 
-        foreach ($this->buildResources($resources, $resourceClass) as $i => $resource) {
+        foreach ($this->buildResources($resources, $resourceClass) as $resource) {
             foreach ($this->defaults['attributes'] ?? [] as $key => $value) {
                 if (method_exists($resource, 'get'.ucfirst($key)) && !$resource->{'get'.ucfirst($key)}()) {
                     $resource = $resource->{'with'.ucfirst($key)}($value);
                 }
             }
 
-            $resourceMetadataCollection[$i] = $resource;
+            $resourceMetadataCollection[] = $resource;
         }
 
         return $resourceMetadataCollection;
@@ -111,7 +111,7 @@ final class ExtractorResourceMetadataCollectionFactory implements ResourceMetada
 
         foreach ($data as $attributes) {
             if (!class_exists($attributes['class'])) {
-                throw new \InvalidArgumentException(sprintf('Operation "%s" does not exist.', $attributes['class']));
+                throw new \InvalidArgumentException(\sprintf('Operation "%s" does not exist.', $attributes['class']));
             }
 
             /** @var HttpOperation $operation */
@@ -150,7 +150,7 @@ final class ExtractorResourceMetadataCollectionFactory implements ResourceMetada
 
         foreach ($data as $attributes) {
             if (!class_exists($attributes['class'])) {
-                throw new \InvalidArgumentException(sprintf('Operation "%s" does not exist.', $attributes['class']));
+                throw new \InvalidArgumentException(\sprintf('Operation "%s" does not exist.', $attributes['class']));
             }
 
             /** @var GraphQlOperation $operation */

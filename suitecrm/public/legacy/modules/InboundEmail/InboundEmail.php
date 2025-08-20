@@ -1572,7 +1572,7 @@ class InboundEmail extends SugarBean
                     flush();
                 } // while
                 fclose($fh);
-                $diff = unserialize($data);
+                $diff = unserialize($data, ['allowed_classes' => false]);
                 if (!empty($diff)) {
                     if ((is_countable($diff) ? count($diff) : 0) > 50) {
                         $newDiff = array_slice($diff, 50, is_countable($diff) ? count($diff) : 0, true);
@@ -2035,7 +2035,7 @@ class InboundEmail extends SugarBean
                     flush();
                 } // while
                 fclose($fh);
-                $results = unserialize($data);
+                $results = unserialize($data, ['allowed_classes' => false]);
             } // if
         } // if
         if (!$cacheDataExists) {
@@ -2964,7 +2964,7 @@ class InboundEmail extends SugarBean
 
             $focusUser = BeanFactory::newBean('Users');
             $focusUser->retrieve($groupId);
-            $mailerId = (isset($_REQUEST['outbound_email'])) ? $_REQUEST['outbound_email'] : "";
+            $mailerId = (isset($_REQUEST['outbound_email'])) ? $this->db->quote($_REQUEST['outbound_email']) : "";
 
             $oe = new OutboundEmail();
             if ($mailerId != "") {
@@ -4144,14 +4144,14 @@ class InboundEmail extends SugarBean
             $emailMessage = $this->mailParser->parse($emailBody, false)->getTextContent();
             $emailMessage = $this->handleInlineImages($emailBody, $emailMessage);
             $emailMessage = $this->customGetMessageText($emailMessage);
-            return SugarCleaner::cleanHtml($emailMessage, false);
+            return html_entity_decode(purify_html(SugarCleaner::cleanHtml($emailMessage, false)));
         }
 
         $emailMessage = $this->mailParser->parse($emailBody, false)->getHtmlContent();
         $emailMessage = $this->handleInlineImages($emailBody, $emailMessage);
-        $emailMessage = $this->customGetMessageText($emailMessage);
+        $emailMessage = $this->customGetMessageText($emailMessage) ?? '';
 
-        return SugarCleaner::cleanHtml($emailMessage, $clean_email);
+        return html_entity_decode(purify_html(SugarCleaner::cleanHtml($emailMessage, $clean_email)));
     }
 
     /**
@@ -4704,8 +4704,10 @@ class InboundEmail extends SugarBean
     {
         $cacheDir = $GLOBALS['sugar_config']['cache_dir'] . 'images/';
 
-        if (isset($attach->id) &&
-            strpos((string) $attach->id, "..") !== false &&
+        $attachmentId = $attach->id ?? '';
+
+        if (!empty($attachmentId) &&
+            strpos((string) $attachmentId, "..") !== false &&
             $this->id !== null &&
             strpos((string) $this->id, "..") !== false
         ) {
@@ -4715,7 +4717,7 @@ class InboundEmail extends SugarBean
         $uploadDir = ($forDisplay) ? "{$this->EmailCachePath}/{$this->id}/attachments/" : "upload://";
 
         // decide what name to save file as
-        $fileName = htmlspecialchars((string) $attach->id);
+        $fileName = htmlspecialchars((string) $attachmentId);
 
         // download the attachment if we didn't do it yet
         if (!file_exists($uploadDir . $fileName)) {
@@ -4737,7 +4739,7 @@ class InboundEmail extends SugarBean
             }
         }
 
-        $this->tempAttachment[$fileName] = urldecode($attach->filename);
+        $this->tempAttachment[$fileName] = urldecode($attach->filename ?? '');
         // if all was successful, feel for inline and cache Note ID for display:
         if ((isset($part->disposition) && strtolower($part->disposition) == 'inline' && in_array($part->subtype, $this->imageTypes))
             || ($part->type == 5)
@@ -4748,8 +4750,10 @@ class InboundEmail extends SugarBean
             }
 
             if (copy($uploadDir . $fileName, sugar_cached("images/{$fileName}.") . strtolower($part->subtype))) {
-                $id = substr((string) $part->id, 1, -1); //strip <> around
-                $this->inlineImages[$id] = $attach->id . "." . strtolower($part->subtype);
+                if (isset($part->id)){
+                    $id = substr((string) $part->id, 1, -1); //strip <> around
+                    $this->inlineImages[$id] = $attachmentId . "." . strtolower($part->subtype);
+                }
             } else {
                 $GLOBALS['log']->debug('InboundEmail could not copy ' . $uploadDir . $fileName . ' to cache');
             }
@@ -5491,7 +5495,7 @@ class InboundEmail extends SugarBean
             ////	ASSIGN APPROPRIATE ATTRIBUTES TO NEW EMAIL OBJECT
             // handle UTF-8/charset encoding in the ***headers***
 
-            $email->name = $this->handleMimeHeaderDecode($header->subject);
+            $email->name = purify_html($this->handleMimeHeaderDecode($parsedFullHeader->subject));
             $email->type = 'inbound';
             if (!empty($unixHeaderDate)) {
                 $email->date_sent_received = $timedate->asUser($unixHeaderDate);
@@ -5709,7 +5713,7 @@ class InboundEmail extends SugarBean
             $fullHeader = $this->getImap()->fetchHeader($uid, FT_UID);
             $parsedFullHeader = $this->getImap()->rfc822ParseHeaders($fullHeader);
 
-            $email->name = $this->handleMimeHeaderDecode($parsedFullHeader->subject);
+            $email->name = purify_html($this->handleMimeHeaderDecode($parsedFullHeader->subject));
             $email->type = 'inbound';
 
             if (isset($request['metadata']['viewdefs'])) {
@@ -6347,7 +6351,7 @@ class InboundEmail extends SugarBean
             $port = $this->port ?? '143';
             $connectString = '{' . $this->server_url . ':' . $port . '/service=' . $protocol . $service . '}';
         }
-        
+
         $mbox = empty($mbox) ? $this->mailbox : $mbox;
         $connectString .= ($includeMbox) ? $mbox : "";
 
@@ -7335,7 +7339,9 @@ class InboundEmail extends SugarBean
             $GLOBALS['log']->debug("NOOP: could not expunge deleted email.");
             $return = false;
         } else {
-            LoggerManager::getLogger()->info("INBOUNDEMAIL: hard-deleted mail with MSgno's' [ {$msgnos} ]");
+            if (!empty($msgnos)){
+                LoggerManager::getLogger()->info("INBOUNDEMAIL: hard-deleted mail with MSgno's' [ {$msgnos} ]");
+            }
         }
 
         return $return;
@@ -7503,7 +7509,7 @@ class InboundEmail extends SugarBean
             include($cache); // profides $cacheFile
             /** @var $cacheFile array */
 
-            $metaOut = unserialize($cacheFile['out']);
+            $metaOut = unserialize($cacheFile['out'], ['allowed_classes' => false]);
             $meta = $metaOut['meta']['email'];
             $email = BeanFactory::newBean('Emails');
 
@@ -8662,38 +8668,6 @@ eoq;
     }
 
     /**
-     * Get refersh token error messages
-     * @param $reLogin
-     * @param ExternalOAuthConnection $oauthConnection
-     * @param string $oAuthConnectionId
-     * @return string
-     */
-    protected function getOAuthRefreshTokenErrorMessage(
-        $reLogin,
-        ExternalOAuthConnection $oauthConnection,
-        string $oAuthConnectionId
-    ): string {
-        $message = translate('ERR_IMAP_OAUTH_CONNECTION_ERROR', 'InboundEmail');
-        $linkAction = 'DetailView';
-
-        if ($reLogin === true) {
-            $linkAction = 'EditView';
-            $message = translate('WARN_OAUTH_TOKEN_SESSION_EXPIRED', 'InboundEmail');
-        }
-
-        $oauthConnectionName = $oauthConnection->name;
-
-        $hasAccess = $oauthConnection->ACLAccess('edit') ?? false;
-        if ($hasAccess === true) {
-            $message .= " <a href=\"index.php?module=ExternalOAuthConnection&action=$linkAction&record=$oAuthConnectionId\">$oauthConnectionName</a>.";
-        } else {
-            $message .= $oauthConnectionName . '.';
-        }
-
-        return $message;
-    }
-
-    /**
      * Get OAuthToken. Refresh if needed
      * @param string $oAuthConnectionId
      * @return string|null
@@ -8703,29 +8677,11 @@ eoq;
         require_once __DIR__ . '/../ExternalOAuthConnection/services/OAuthAuthorizationService.php';
         $oAuth = new OAuthAuthorizationService();
 
+        $oAuth->refreshExpiredOAuthToken($oAuthConnectionId);
+
         /** @var ExternalOAuthConnection $oauthConnection */
         $oauthConnection = BeanFactory::getBean('ExternalOAuthConnection', $oAuthConnectionId);
-        $password = $oauthConnection->access_token;
-
-        $hasExpiredFeedback = $oAuth->hasConnectionTokenExpired($oauthConnection);
-        $refreshToken = $hasExpiredFeedback['refreshToken'] ?? false;
-        if ($refreshToken === true) {
-            $refreshTokenFeedback = $oAuth->refreshConnectionToken($oauthConnection);
-
-            if ($refreshTokenFeedback['success'] === false) {
-                $message = $this->getOAuthRefreshTokenErrorMessage(
-                    $refreshTokenFeedback['reLogin'],
-                    $oauthConnection,
-                    $oAuthConnectionId
-                );
-                displayAdminError($message);
-                return null;
-            }
-
-            return $oauthConnection->access_token;
-        }
-
-        return $password;
+        return $oauthConnection->access_token;
     }
 
     /**

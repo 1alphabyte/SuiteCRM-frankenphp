@@ -26,7 +26,12 @@
 
 import {Component, computed, inject, Input, OnDestroy, OnInit, signal, Signal} from '@angular/core';
 import {FieldComponentInterface} from './field.interface';
-import {AttributeDependency, Field, isVoid, ObjectMap, Record, ViewMode} from 'common';
+import {AttributeDependency} from '../../common/record/field.model';
+import {ObjectMap} from '../../common/types/object-map';
+import {isVoid} from '../../common/utils/value-utils';
+import {Field} from '../../common/record/field.model';
+import {ViewMode} from '../../common/views/view.model';
+import {Record} from '../../common/record/record.model';
 import {BehaviorSubject, Observable, Subscription} from 'rxjs';
 import {DataTypeFormatter} from '../../services/formatters/data-type.formatter.service';
 import {debounceTime} from 'rxjs/operators';
@@ -141,17 +146,18 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
             if (this.field.valueChanges$ && ((this.dependentFields && Object.keys(this.dependentFields).length) || this.dependentAttributes.length)) {
                 this.subs.push(this.field.valueChanges$.pipe(debounceTime(500)).subscribe((data) => {
                     Object.keys(this.dependentFields).forEach(fieldKey => {
-                        const dependentField = this.dependentFields[fieldKey];
+                        const dependentFieldKey = this.dependentFields[fieldKey];
                         const field = this.record.fields[fieldKey] || null;
+                        const dependentField = this.record.fields[dependentFieldKey.field] || null;
                         if (!field) {
                             return;
                         }
 
                         if (this.field.previousValue != data.value) {
-                            const types = dependentField.type ?? [];
+                            const types = dependentFieldKey.type ?? [];
 
                             if (types.includes('logic')) {
-                                this.logic.runLogic(field, this.originalMode as ViewMode, this.record, 'onValueChange');
+                                this.logic.runLogic(field, this.originalMode as ViewMode, this.record, 'onDependencyChange', dependentField);
                             }
 
                             if (types.includes('displayLogic')) {
@@ -169,7 +175,7 @@ export class BaseFieldComponent implements FieldComponentInterface, OnInit, OnDe
                             return;
                         }
 
-                        this.logic.runLogic(attribute, this.mode as ViewMode, this.record, 'onValueChange');
+                        this.logic.runLogic(attribute, this.mode as ViewMode, this.record, 'onAttributeChange');
                     });
 
                 }));

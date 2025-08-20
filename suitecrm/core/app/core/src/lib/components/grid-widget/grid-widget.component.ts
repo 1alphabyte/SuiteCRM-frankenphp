@@ -24,31 +24,28 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Component, Input, OnDestroy, OnInit} from '@angular/core';
+import {Component, Input, OnDestroy, OnInit, signal, WritableSignal} from '@angular/core';
 
 import {combineLatestWith, Observable, of, Subscription} from 'rxjs';
-import {map, shareReplay, take} from 'rxjs/operators';
+import {map, shareReplay, take, tap} from 'rxjs/operators';
 import {SingleValueStatisticsStoreFactory} from '../../store/single-value-statistics/single-value-statistics.store.factory';
 import {LanguageStore} from '../../store/language/language.store';
 import {
     ContentAlign,
     ContentJustify,
-    FieldMap,
-    isTrue,
-    SingleValueStatisticsState,
-    SingleValueStatisticsStoreInterface,
-    StatisticMetadata,
-    StatisticsQuery,
     StatisticWidgetLayoutCol,
     StatisticWidgetLayoutRow,
     StatisticWidgetOptions,
-    StringMap,
     TextColor,
     TextSizes,
-    ViewContext,
-    WidgetMetadata,
-} from 'common';
-
+    WidgetMetadata
+} from '../../common/metadata/widget.metadata';
+import {FieldMap} from '../../common/record/field.model';
+import {SingleValueStatisticsState, SingleValueStatisticsStoreInterface} from '../../common/statistics/statistics-store.model';
+import {StatisticMetadata, StatisticsQuery} from '../../common/statistics/statistics.model';
+import {StringMap} from '../../common/types/string-map';
+import {ViewContext} from '../../common/views/view.model';
+import {isTrue} from '../../common/utils/value-utils';
 interface StatisticsEntry {
     labelKey?: string;
     type: string;
@@ -95,6 +92,7 @@ export class GridWidgetComponent implements OnInit, OnDestroy {
     vm$: Observable<GridWidgetState>;
     loading = true;
     messageLabelKey: string;
+    initializing: WritableSignal<boolean> = signal(true);
     private subs: Subscription[] = [];
     private statistics: StatisticsEntryMap = {};
     private loading$: Observable<boolean>;
@@ -423,6 +421,12 @@ export class GridWidgetComponent implements OnInit, OnDestroy {
                 );
             }
         }
+
+        allStatistics$ = allStatistics$.pipe(tap(() => {
+            if(this.initializing()) {
+                this.initializing.set(false);
+            }
+        }));
 
         this.vm$ = allStatistics$.pipe(
             combineLatestWith(layout$),

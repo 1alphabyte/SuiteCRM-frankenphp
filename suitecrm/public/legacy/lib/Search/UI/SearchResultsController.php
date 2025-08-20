@@ -98,7 +98,7 @@ class SearchResultsController extends Controller
 
     public function display(): void
     {
-        global $app_strings;
+        global $app_strings, $sugar_config;
         $headers = [];
 
         try {
@@ -135,13 +135,23 @@ class SearchResultsController extends Controller
             }
         }
 
+        $siteUrl = $sugar_config['site_url'] ?? '';
+
         $smarty = $this->view->getTemplate();
         $smarty->assign('total', $total);
         $smarty->assign('headers', $headers);
         $smarty->assign('results', $this->results);
         $smarty->assign('APP', $app_strings);
+        $smarty->assign('SITE_URL', $siteUrl);
+        $moduleName = [];
         try {
-            $smarty->assign('resultsAsBean', $this->results->getHitsAsBeans());
+            $hitsAsBeans = $this->results->getHitsAsBeans();
+            foreach($hitsAsBeans as $bean){
+                $moduleName[$bean[0]->module_name] = translate('LBL_MODULE_NAME', $bean[0]->module_name);
+            }
+            $smarty->assign('moduleLabel', $moduleName);
+
+            $smarty->assign('resultsAsBean', $hitsAsBeans);
         } catch (\SuiteCRM\Exception\Exception $e) {
             LoggerManager::getLogger()->fatal("Failed to retrieve ElasticSearch options");
         }

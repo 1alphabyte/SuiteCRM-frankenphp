@@ -13,14 +13,19 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Metadata\Resource\Factory;
 
+use ApiPlatform\Doctrine\Odm\State\Options as DoctrineOdmOptions;
+use ApiPlatform\Doctrine\Orm\State\Options as DoctrineOrmOptions;
 use ApiPlatform\Metadata\FilterInterface;
-use ApiPlatform\Metadata\HeaderParameterInterface;
+use ApiPlatform\Metadata\HttpOperation;
+use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Parameter;
 use ApiPlatform\Metadata\Parameters;
+use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use ApiPlatform\OpenApi\Model\Parameter as OpenApiParameter;
 use ApiPlatform\Serializer\Filter\FilterInterface as SerializerFilterInterface;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 use Symfony\Component\Validator\Constraints\Choice;
 use Symfony\Component\Validator\Constraints\Count;
 use Symfony\Component\Validator\Constraints\DivisibleBy;
@@ -32,6 +37,7 @@ use Symfony\Component\Validator\Constraints\LessThanOrEqual;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Constraints\Regex;
+use Symfony\Component\Validator\Constraints\Type;
 use Symfony\Component\Validator\Constraints\Unique;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -42,7 +48,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 final class ParameterResourceMetadataCollectionFactory implements ResourceMetadataCollectionFactoryInterface
 {
-    public function __construct(private readonly ?ResourceMetadataCollectionFactoryInterface $decorated = null, private readonly ?ContainerInterface $filterLocator = null)
+    public function __construct(private readonly ?ResourceMetadataCollectionFactoryInterface $decorated = null, private readonly ?ContainerInterface $filterLocator = null, private readonly ?NameConverterInterface $nameConverter = null)
     {
     }
 
@@ -51,44 +57,55 @@ final class ParameterResourceMetadataCollectionFactory implements ResourceMetada
         $resourceMetadataCollection = $this->decorated?->create($resourceClass) ?? new ResourceMetadataCollection($resourceClass);
 
         foreach ($resourceMetadataCollection as $i => $resource) {
+            $resourceClass = $resource->getClass();
             $operations = $resource->getOperations();
 
             $internalPriority = -1;
             foreach ($operations as $operationName => $operation) {
-                $parameters = [];
-                foreach ($operation->getParameters() ?? [] as $key => $parameter) {
-                    $parameter = $this->setDefaults($key, $parameter, $resourceClass);
+                $parameters = $operation->getParameters() ?? new Parameters();
+                foreach ($parameters as $key => $parameter) {
+                    $key = $parameter->getKey() ?? $key;
+                    $parameter = $this->setDefaults($key, $parameter, $resourceClass, $operation);
                     $priority = $parameter->getPriority() ?? $internalPriority--;
-                    $parameters[$key] = $parameter->withPriority($priority);
+                    $parameters->add($key, $parameter->withPriority($priority));
                 }
 
-                $operations->add($operationName, $operation->withParameters(new Parameters($parameters)));
+                // As we deprecate the parameter validator, we declare a parameter for each filter transfering validation to the new system
+                if ($operation->getFilters() && 0 === $parameters->count() && false === ($operation->getExtraProperties()['use_legacy_parameter_validator'] ?? true)) {
+                    $parameters = $this->addFilterValidation($operation);
+                }
+
+                if (\count($parameters) > 0) {
+                    $operations->add($operationName, $operation->withParameters($parameters));
+                }
             }
 
             $resourceMetadataCollection[$i] = $resource->withOperations($operations->sort());
 
+            if (!$graphQlOperations = $resource->getGraphQlOperations()) {
+                continue;
+            }
+
             $internalPriority = -1;
-            $graphQlOperations = $resource->getGraphQlOperations();
-            foreach ($graphQlOperations ?? [] as $operationName => $operation) {
-                $parameters = [];
+            foreach ($graphQlOperations as $operationName => $operation) {
+                $parameters = $operation->getParameters() ?? new Parameters();
                 foreach ($operation->getParameters() ?? [] as $key => $parameter) {
-                    $parameter = $this->setDefaults($key, $parameter, $resourceClass);
+                    $key = $parameter->getKey() ?? $key;
+                    $parameter = $this->setDefaults($key, $parameter, $resourceClass, $operation);
                     $priority = $parameter->getPriority() ?? $internalPriority--;
-                    $parameters[$key] = $parameter->withPriority($priority);
+                    $parameters->add($key, $parameter->withPriority($priority));
                 }
 
-                $graphQlOperations[$operationName] = $operation->withParameters(new Parameters($parameters));
+                $graphQlOperations[$operationName] = $operation->withParameters($parameters);
             }
 
-            if ($graphQlOperations) {
-                $resourceMetadataCollection[$i] = $resource->withGraphQlOperations($graphQlOperations);
-            }
+            $resourceMetadataCollection[$i] = $resource->withGraphQlOperations($graphQlOperations);
         }
 
         return $resourceMetadataCollection;
     }
 
-    private function setDefaults(string $key, Parameter $parameter, string $resourceClass): Parameter
+    private function setDefaults(string $key, Parameter $parameter, string $resourceClass, Operation $operation): Parameter
     {
         if (null === $parameter->getKey()) {
             $parameter = $parameter->withKey($key);
@@ -104,49 +121,24 @@ final class ParameterResourceMetadataCollectionFactory implements ResourceMetada
         }
 
         // Read filter description to populate the Parameter
-        $description = $filter instanceof FilterInterface ? $filter->getDescription($resourceClass) : [];
+        $description = $filter instanceof FilterInterface ? $filter->getDescription($this->getFilterClass($operation)) : [];
         if (($schema = $description[$key]['schema'] ?? null) && null === $parameter->getSchema()) {
             $parameter = $parameter->withSchema($schema);
-        }
-
-        if (null === $parameter->getProperty() && ($property = $description[$key]['property'] ?? null)) {
-            $parameter = $parameter->withProperty($property);
         }
 
         if (null === $parameter->getRequired() && ($required = $description[$key]['required'] ?? null)) {
             $parameter = $parameter->withRequired($required);
         }
 
-        if (null === $parameter->getOpenApi() && $openApi = $description[$key]['openapi'] ?? null) {
-            if ($openApi instanceof OpenApiParameter) {
-                $parameter = $parameter->withOpenApi($openApi);
-            } elseif (\is_array($openApi)) {
-                // @phpstan-ignore-next-line
-                $schema = $schema ?? $openapi['schema'] ?? [];
-                $parameter = $parameter->withOpenApi(new OpenApiParameter(
-                    $key,
-                    $parameter instanceof HeaderParameterInterface ? 'header' : 'query',
-                    $description[$key]['description'] ?? '',
-                    $description[$key]['required'] ?? $openApi['required'] ?? false,
-                    $openApi['deprecated'] ?? false,
-                    $openApi['allowEmptyValue'] ?? true,
-                    $schema,
-                    $openApi['style'] ?? null,
-                    $openApi['explode'] ?? ('array' === ($schema['type'] ?? null)),
-                    $openApi['allowReserved'] ?? false,
-                    $openApi['example'] ?? null,
-                    isset(
-                        $openApi['examples']
-                    ) ? new \ArrayObject($openApi['examples']) : null
-                ));
-            }
-        }
-
-        $schema = $parameter->getSchema() ?? $parameter->getOpenApi()?->getSchema();
+        $schema = $parameter->getSchema() ?? (($openApi = $parameter->getOpenApi()) ? $openApi->getSchema() : null);
 
         // Only add validation if the Symfony Validator is installed
         if (interface_exists(ValidatorInterface::class) && !$parameter->getConstraints()) {
-            $parameter = $this->addSchemaValidation($parameter, $schema, $parameter->getRequired() ?? $description['required'] ?? false, $parameter->getOpenApi());
+            $parameter = $this->addSchemaValidation($parameter, $schema, $parameter->getRequired() ?? $description['required'] ?? false, $parameter->getOpenApi() ?: null);
+        }
+
+        if ($this->nameConverter && $property = $parameter->getProperty()) {
+            $parameter = $parameter->withProperty($this->nameConverter->normalize($property));
         }
 
         return $parameter;
@@ -156,8 +148,12 @@ final class ParameterResourceMetadataCollectionFactory implements ResourceMetada
     {
         $assertions = [];
 
-        if ($required) {
-            $assertions[] = new NotNull(message: sprintf('The parameter "%s" is required.', $parameter->getKey()));
+        if ($required && false !== ($allowEmptyValue = $openApi?->getAllowEmptyValue())) {
+            $assertions[] = new NotNull(message: \sprintf('The parameter "%s" is required.', $parameter->getKey()));
+        }
+
+        if (false === ($allowEmptyValue ?? $openApi?->getAllowEmptyValue())) {
+            $assertions[] = new NotBlank(allowNull: !$required);
         }
 
         if (isset($schema['exclusiveMinimum'])) {
@@ -200,8 +196,8 @@ final class ParameterResourceMetadataCollectionFactory implements ResourceMetada
             $assertions[] = new Choice(choices: $schema['enum']);
         }
 
-        if (false === $openApi?->getAllowEmptyValue()) {
-            $assertions[] = new NotBlank(allowNull: !$required);
+        if (isset($schema['type']) && 'array' === $schema['type']) {
+            $assertions[] = new Type(type: 'array');
         }
 
         if (!$assertions) {
@@ -213,5 +209,86 @@ final class ParameterResourceMetadataCollectionFactory implements ResourceMetada
         }
 
         return $parameter->withConstraints($assertions);
+    }
+
+    private function addFilterValidation(HttpOperation $operation): Parameters
+    {
+        $parameters = new Parameters();
+        $internalPriority = -1;
+
+        foreach ($operation->getFilters() as $filter) {
+            if (!$this->filterLocator->has($filter)) {
+                continue;
+            }
+
+            $filter = $this->filterLocator->get($filter);
+            foreach ($filter->getDescription($this->getFilterClass($operation)) as $parameterName => $definition) {
+                $key = $parameterName;
+                $required = $definition['required'] ?? false;
+                $schema = $definition['schema'] ?? null;
+
+                if (isset($definition['swagger'])) {
+                    trigger_deprecation('api-platform/core', '3.4', 'The key "swagger" in a filter description is deprecated, use "schema" or "openapi" instead.');
+                    $schema = $schema ?? $definition['swagger'];
+                }
+
+                $openApi = null;
+                if (isset($definition['openapi'])) {
+                    trigger_deprecation('api-platform/core', '3.4', \sprintf('The key "openapi" in a filter description should be a "%s" class or use "schema" to specify the JSON Schema.', OpenApiParameter::class));
+                    if ($definition['openapi'] instanceof OpenApiParameter) {
+                        $openApi = $definition['openapi'];
+                    } else {
+                        $schema = $schema ?? $openApi;
+                    }
+                }
+
+                if (isset($schema['allowEmptyValue']) && !$openApi) {
+                    trigger_deprecation('api-platform/core', '3.4', 'The "allowEmptyValue" option should be declared using an "openapi" parameter.');
+                    $openApi = new OpenApiParameter(name: $key, in: 'query', allowEmptyValue: $schema['allowEmptyValue']);
+                }
+
+                // The query parameter validator forced this, lets maintain BC on filters
+                if (true === $required && !$openApi) {
+                    $openApi = new OpenApiParameter(name: $key, in: 'query', allowEmptyValue: false);
+                }
+
+                if (\is_bool($schema['exclusiveMinimum'] ?? null)) {
+                    trigger_deprecation('api-platform/core', '3.4', 'The "exclusiveMinimum" schema value should be a number not a boolean.');
+                    $schema['exclusiveMinimum'] = $schema['minimum'];
+                    unset($schema['minimum']);
+                }
+
+                if (\is_bool($schema['exclusiveMaximum'] ?? null)) {
+                    trigger_deprecation('api-platform/core', '3.4', 'The "exclusiveMaximum" schema value should be a number not a boolean.');
+                    $schema['exclusiveMaximum'] = $schema['maximum'];
+                    unset($schema['maximum']);
+                }
+
+                $parameters->add($key, $this->addSchemaValidation(
+                    // we disable openapi and hydra on purpose as their docs comes from filters see the condition for addFilterValidation above
+                    new QueryParameter(key: $key, property: $definition['property'] ?? null, priority: $internalPriority--, schema: $schema, openApi: false, hydra: false),
+                    $schema,
+                    $required,
+                    $openApi
+                ));
+            }
+        }
+
+        return $parameters;
+    }
+
+    private function getFilterClass(Operation $operation): ?string
+    {
+        $stateOptions = $operation->getStateOptions();
+
+        if ($stateOptions instanceof DoctrineOrmOptions) {
+            return $stateOptions->getEntityClass();
+        }
+
+        if ($stateOptions instanceof DoctrineOdmOptions) {
+            return $stateOptions->getDocumentClass();
+        }
+
+        return $operation->getClass();
     }
 }

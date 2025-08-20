@@ -25,18 +25,16 @@
  */
 
 import {Injectable} from '@angular/core';
-import {
-    Action,
-    deepClone,
-    DisplayType,
-    MapEntry,
-    Record,
-    RecordMapper,
-    RecordMapperRegistry,
-    StringArrayMap,
-    StringArrayMatrix,
-    ViewMode
-} from 'common';
+import {Action} from '../../../common/actions/action.model';
+import {deepClone} from '../../../common/utils/object-utils';
+import {MapEntry} from '../../../common/types/overridable-map';
+import {DisplayType} from '../../../common/record/field.model';
+import {Record} from '../../../common/record/record.model';
+import {RecordMapper} from '../../../common/record/record-mappers/record-mapper.model';
+import {RecordMapperRegistry} from '../../../common/record/record-mappers/record-mapper.registry';
+import {StringArrayMap} from '../../../common/types/string-map';
+import {StringArrayMatrix} from '../../../common/types/string-matrix';
+import {ViewMode} from '../../../common/views/view.model';
 import {FieldLogicActionData, FieldLogicActionHandler} from '../field-logic.action';
 import {AsyncActionInput, AsyncActionService} from '../../../services/process/processes/async-action/async-action';
 import {ProcessService} from '../../../services/process/process.service';
@@ -98,22 +96,22 @@ export class DisplayTypeBackendAction extends FieldLogicActionHandler {
                 module: record.module ?? '',
                 record: baseRecord
             } as AsyncActionInput;
-            field.loading = true;
+            field.loading.set(true)
 
             this.processService.submit(processType, options).subscribe((result) => {
 
                 const targetDisplay = result?.data?.value ?? null;
-                field.loading = false;
+                field.loading.set(false)
 
                 if (targetDisplay === null) {
                     this.messages.addDangerMessageByKey("ERR_FIELD_LOGIC_BACKEND_CALCULATION");
                     return;
                 }
                 display = targetDisplay
-                data.field.display = display as DisplayType;
+                data.field.display.set(display as DisplayType);
 
             }, (error) => {
-                field.loading = false;
+                field.loading.set(false)
                 this.messages.addDangerMessageByKey("ERR_FIELD_LOGIC_BACKEND_CALCULATION");
             });
         }
@@ -162,7 +160,7 @@ export class DisplayTypeBackendAction extends FieldLogicActionHandler {
     }
 
     getTriggeringStatus(): string[] {
-        return ['onValueChange', 'onFieldInitialize'];
+        return ['onAnyLogic', 'onFieldInitialize'];
     }
 
 }

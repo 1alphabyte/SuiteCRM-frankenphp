@@ -25,10 +25,14 @@
  */
 
 import {Injectable} from '@angular/core';
-import {Action, StringArrayMap, StringArrayMatrix, ViewMode} from 'common';
+import {Action} from '../../../common/actions/action.model';
+import {StringArrayMap} from '../../../common/types/string-map';
+import {StringArrayMatrix} from '../../../common/types/string-matrix';
+import {ViewMode} from '../../../common/views/view.model';
 import {FieldLogicActionData, FieldLogicActionHandler} from '../field-logic.action';
 import {RequiredValidator} from '../../../services/record/validation/validators/required.validator';
 import {ActiveFieldsChecker} from "../../../services/condition-operators/active-fields-checker.service";
+import {ViewFieldDefinition} from "../../../common/metadata/metadata.model";
 
 @Injectable({
     providedIn: 'root'
@@ -69,18 +73,24 @@ export class RequiredAction extends FieldLogicActionHandler {
         let validators = [...data.field.validators || []];
         if (isActive) {
             required = true;
-            validators = validators.concat(this.requiredValidator.getValidator(field, record));
+
+            const viewField: ViewFieldDefinition = {
+                ...field,
+                display: field?.display()
+            }
+
+            validators = validators.concat(this.requiredValidator.getValidator(viewField, record));
         }
 
         data.field.formControl.updateValueAndValidity({onlySelf: true, emitEvent: true});
         record.formGroup.updateValueAndValidity({onlySelf: true, emitEvent: true});
-        data.field.definition.required = required;
+        data.field.required.set(required);
         data.field.formControl.setValidators(validators);
         data.field.formControl.updateValueAndValidity({onlySelf: true, emitEvent: true});
         record.formGroup.updateValueAndValidity({onlySelf: true, emitEvent: true});
     }
 
     getTriggeringStatus(): string[] {
-        return ['onValueChange', 'onFieldInitialize'];
+        return ['onAnyLogic', 'onFieldInitialize'];
     }
 }

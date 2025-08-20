@@ -61,7 +61,7 @@ final class ErrorListener extends SymfonyErrorListener
         private readonly IdentifiersExtractorInterface|LegacyIdentifiersExtractorInterface|null $identifiersExtractor = null,
         private readonly ResourceClassResolverInterface|LegacyResourceClassResolverInterface|null $resourceClassResolver = null,
         ?Negotiator $negotiator = null,
-        private readonly bool $problemCompliantErrors = true,
+        private readonly ?bool $problemCompliantErrors = true,
     ) {
         parent::__construct($controller, $logger, $debug, $exceptionsMapping);
         $this->resourceMetadataCollectionFactory = $resourceMetadataCollectionFactory;
@@ -81,7 +81,7 @@ final class ErrorListener extends SymfonyErrorListener
         //   - use api platform to handle errors (the default behavior we handle firewall errors for example but they're out of our scope)
 
         // Let the error handler take this we don't handle HTML nor non-api platform requests
-        if ('html' === $format) {
+        if (false === ($apiOperation?->getExtraProperties()['_api_error_handler'] ?? true) || 'html' === $format) {
             $this->controller = 'error_controller';
 
             return parent::duplicateRequest($exception, $request);
@@ -90,7 +90,7 @@ final class ErrorListener extends SymfonyErrorListener
         $legacy = $apiOperation ? ($apiOperation->getExtraProperties()['rfc_7807_compliant_errors'] ?? false) : $this->problemCompliantErrors;
 
         if (!$this->problemCompliantErrors || !$legacy) {
-            // TODO: deprecate in API Platform 3.3
+            trigger_deprecation('api-platform/core', '3.4', "rfc_7807_compliant_errors flag will be removed in 4.0, to handle errors yourself use extraProperties: ['rfc_7807_compliant_errors' => false]");
             $this->controller = 'api_platform.action.exception';
             $dup = parent::duplicateRequest($exception, $request);
             $dup->attributes->set('_api_operation', $apiOperation);
@@ -110,9 +110,13 @@ final class ErrorListener extends SymfonyErrorListener
             $operation = $operation->withProvider('api_platform.state.error_provider');
         }
 
-        $normalizationContext = $operation->getNormalizationContext() ?? [];
+        $normalizationContext = ($operation->getNormalizationContext() ?? []) + ($apiOperation?->getNormalizationContext() ?? []);
         if (!($normalizationContext['api_error_resource'] ?? false)) {
             $normalizationContext += ['api_error_resource' => true];
+        }
+
+        if (isset($normalizationContext['item_uri_template'])) {
+            unset($normalizationContext['item_uri_template']);
         }
 
         if (!isset($normalizationContext[AbstractObjectNormalizer::IGNORED_ATTRIBUTES])) {
@@ -212,7 +216,7 @@ final class ErrorListener extends SymfonyErrorListener
             'jsonld' => '_api_errors_hydra',
             'jsonapi' => '_api_errors_jsonapi',
             'html' => '_api_errors_problem', // This will be intercepted by the SwaggerUiProvider
-            default => '_api_errors_problem'
+            default => '_api_errors_problem',
         };
     }
 

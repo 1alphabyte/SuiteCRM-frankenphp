@@ -116,6 +116,9 @@ abstract class LegacyHandler
 
         $this->startSession();
 
+        // force legacy dir
+        chdir($this->legacyDir);
+
         $this->state->setActiveScope($this->getHandlerKey());
     }
 
@@ -148,6 +151,16 @@ abstract class LegacyHandler
         $this->state->setLegacyBootstrapped(true);
 
         return true;
+    }
+
+    public function getProjectDir(): string
+    {
+        return $this->projectDir;
+    }
+
+    public function setProjectDir(string $projectDir): void
+    {
+        $this->projectDir = $projectDir;
     }
 
     /**

@@ -25,7 +25,6 @@
  */
 
 import {
-    ChangeDetectorRef,
     Component,
     computed,
     HostBinding,
@@ -34,7 +33,10 @@ import {
     Signal,
     Type
 } from '@angular/core';
-import {EDITABLE_VIEW_MODES, Field, Record, StringMap, ViewMode} from 'common';
+import {Record} from '../../common/record/record.model';
+import {Field} from '../../common/record/field.model';
+import {EDITABLE_VIEW_MODES, ViewMode} from '../../common/views/view.model';
+import {StringMap} from '../../common/types/string-map';
 import {Router} from '@angular/router';
 import {ModuleNameMapper} from '../../services/navigation/module-name-mapper/module-name-mapper.service';
 import {ModuleNavigation} from '../../services/navigation/module-navigation/module-navigation.service';
@@ -70,7 +72,6 @@ export class DynamicFieldComponent implements OnInit {
         protected router: Router,
         protected dynamicLabelService: DynamicLabelService,
         protected linkRouteAsyncActionService: LinkRouteAsyncActionService,
-        private cd: ChangeDetectorRef
     ) {
     }
 
@@ -94,7 +95,6 @@ export class DynamicFieldComponent implements OnInit {
 
     ngOnInit(): void {
         this.setHostClass();
-        this.cd.detectChanges();
         this.validateOnlyOnSubmit = this.record?.metadata?.validateOnlyOnSubmit;
 
         if(this.record?.validationTriggered) {

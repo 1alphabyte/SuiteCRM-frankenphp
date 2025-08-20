@@ -128,6 +128,7 @@
             <argument type="service" id="api_platform.pagination" />
             <argument type="service" id="api_platform.name_converter" on-invalid="ignore" />
             <argument>%api_platform.graphql.nesting_separator%</argument>
+            <argument type="service" id="api_platform.inflector" on-invalid="null" />
         </service>
 
         <service id="api_platform.graphql.schema_builder" class="ApiPlatform\GraphQl\Type\SchemaBuilder" public="false">
@@ -190,6 +191,12 @@
         <service id="api_platform.graphql.resolver.factory.item" class="ApiPlatform\GraphQl\Resolver\Factory\ResolverFactory" public="false">
             <argument type="service" id="api_platform.graphql.state_provider" />
             <argument type="service" id="api_platform.graphql.state_processor" />
+            <argument type="service" id="api_platform.graphql.runtime_operation_metadata_factory" />
+        </service>
+
+        <service id="api_platform.graphql.runtime_operation_metadata_factory" class="ApiPlatform\GraphQl\Metadata\RuntimeOperationMetadataFactory" public="false">
+            <argument type="service" id="api_platform.metadata.resource.metadata_collection_factory" />
+            <argument type="service" id="api_platform.router" />
         </service>
 
         <!-- Resolver Stages -->
@@ -236,10 +243,9 @@
         <service id="api_platform.graphql.subscription.subscription_manager" class="ApiPlatform\GraphQl\Subscription\SubscriptionManager">
             <argument type="service" id="api_platform.graphql.cache.subscription" />
             <argument type="service" id="api_platform.graphql.subscription.subscription_identifier_generator" />
-            <argument type="service" id="api_platform.graphql.resolver.stage.serialize" on-invalid="ignore" />
+            <argument type="service" id="api_platform.graphql.state_processor.normalize" on-invalid="ignore" />
             <argument type="service" id="api_platform.symfony.iri_converter" />
             <argument type="service" id="api_platform.metadata.resource.metadata_collection_factory" />
-            <argument type="service" id="api_platform.graphql.state_processor.normalize" on-invalid="ignore" />
         </service>
 
         <!-- Serializer -->

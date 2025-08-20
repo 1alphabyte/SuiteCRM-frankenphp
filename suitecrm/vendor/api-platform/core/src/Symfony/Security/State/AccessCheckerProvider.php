@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Symfony\Security\State;
 
+use ApiPlatform\Metadata\Exception\RuntimeException;
 use ApiPlatform\Metadata\GraphQl\Operation as GraphQlOperation;
 use ApiPlatform\Metadata\GraphQl\QueryCollection;
 use ApiPlatform\Metadata\HttpOperation;
@@ -44,6 +45,14 @@ final class AccessCheckerProvider implements ProviderInterface
             case 'post_validate':
                 $isGranted = $operation->getSecurityPostValidation();
                 $message = $operation->getSecurityPostValidationMessage();
+                break;
+            case 'after_resolver':
+                if (!$operation instanceof GraphQlOperation) {
+                    throw new RuntimeException('Not a graphql operation');
+                }
+
+                $isGranted = $operation->getSecurityAfterResolver();
+                $message = $operation->getSecurityMessageAfterResolver();
                 break;
             default:
                 $isGranted = $operation->getSecurity();

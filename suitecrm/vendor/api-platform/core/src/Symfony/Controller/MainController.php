@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Symfony\Controller;
 
-use ApiPlatform\Api\UriVariablesConverterInterface;
-use ApiPlatform\Exception\InvalidIdentifierException;
-use ApiPlatform\Exception\InvalidUriVariableException;
 use ApiPlatform\Metadata\Error;
+use ApiPlatform\Metadata\Exception\InvalidIdentifierException;
+use ApiPlatform\Metadata\Exception\InvalidUriVariableException;
 use ApiPlatform\Metadata\Exception\RuntimeException;
 use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use ApiPlatform\Metadata\UriVariablesConverterInterface;
 use ApiPlatform\State\ProcessorInterface;
 use ApiPlatform\State\ProviderInterface;
 use ApiPlatform\State\UriVariablesResolverTrait;
@@ -39,7 +39,7 @@ final class MainController
         private readonly ProviderInterface $provider,
         private readonly ProcessorInterface $processor,
         ?UriVariablesConverterInterface $uriVariablesConverter = null,
-        private readonly ?LoggerInterface $logger = null
+        private readonly ?LoggerInterface $logger = null,
     ) {
         $this->resourceMetadataCollectionFactory = $resourceMetadataCollectionFactory;
         $this->uriVariablesConverter = $uriVariablesConverter;

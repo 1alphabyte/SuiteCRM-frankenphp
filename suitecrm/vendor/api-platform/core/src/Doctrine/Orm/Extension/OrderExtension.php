@@ -15,7 +15,7 @@ namespace ApiPlatform\Doctrine\Orm\Extension;
 
 use ApiPlatform\Doctrine\Orm\Util\QueryBuilderHelper;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
-use ApiPlatform\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Operation;
 use Doctrine\ORM\QueryBuilder;
 
@@ -67,7 +67,7 @@ final class OrderExtension implements QueryCollectionExtensionInterface
                     $field = "{$rootAlias}.{$field}";
                 } else {
                     $alias = QueryBuilderHelper::addJoinOnce($queryBuilder, $queryNameGenerator, $rootAlias, substr($field, 0, $pos));
-                    $field = sprintf('%s.%s', $alias, substr($field, $pos + 1));
+                    $field = \sprintf('%s.%s', $alias, substr($field, $pos + 1));
                 }
                 $queryBuilder->addOrderBy($field, $order);
             }

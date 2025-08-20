@@ -25,7 +25,9 @@
  */
 
 import {FieldBuilder} from './field.builder';
-import {Field, FieldAttribute, FieldDefinition, FieldMap, Record, ViewFieldDefinition} from 'common';
+import {Field, FieldAttribute, FieldMap, FieldDefinition} from '../../../common/record/field.model';
+import {Record} from '../../../common/record/record.model';
+import {ViewFieldDefinition} from '../../../common/metadata/metadata.model';
 import {LanguageStore} from '../../../store/language/language.store';
 import {ValidationManager} from '../validation/validation.manager';
 import {DataTypeFormatter} from '../../formatters/data-type.formatter.service';
@@ -158,6 +160,7 @@ export class AttributeBuilder extends FieldBuilder {
         fieldAttribute.valueParent = definition.valueParent;
         fieldAttribute.source = 'attribute';
         fieldAttribute.parentKey = parentField.name;
+        fieldAttribute.useFullColumn = definition?.useFullColumn || field?.definition?.useFullColumn || null;
 
         return fieldAttribute;
     }

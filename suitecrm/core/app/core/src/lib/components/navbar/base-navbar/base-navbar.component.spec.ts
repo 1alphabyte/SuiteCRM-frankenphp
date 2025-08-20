@@ -27,18 +27,19 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
 import {RouterTestingModule} from '@angular/router/testing';
-import {HttpClientTestingModule} from '@angular/common/http/testing';
+import {provideHttpClientTesting} from '@angular/common/http/testing';
 
 import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
 
-import {NavbarUiComponent} from './navbar.component';
+import {NavbarUiComponent} from '../navbar.component';
 import {ApolloTestingModule} from 'apollo-angular/testing';
-import {navigationMock} from '../../store/navigation/navigation.store.spec.mock';
-import {NavigationStore} from '../../store/navigation/navigation.store';
-import {UserPreferenceStore} from '../../store/user-preference/user-preference.store';
-import {languageStoreMock} from '../../store/language/language.store.spec.mock';
-import {LanguageStore} from '../../store/language/language.store';
-import {userPreferenceStoreMock} from '../../store/user-preference/user-preference.store.spec.mock';
+import {navigationMock} from '../../../store/navigation/navigation.store.spec.mock';
+import {NavigationStore} from '../../../store/navigation/navigation.store';
+import {UserPreferenceStore} from '../../../store/user-preference/user-preference.store';
+import {languageStoreMock} from '../../../store/language/language.store.spec.mock';
+import {LanguageStore} from '../../../store/language/language.store';
+import {userPreferenceStoreMock} from '../../../store/user-preference/user-preference.store.spec.mock';
+import {provideHttpClient, withInterceptorsFromDi} from '@angular/common/http';
 
 describe('NavbarUiComponent', () => {
 
@@ -49,20 +50,19 @@ describe('NavbarUiComponent', () => {
 
         beforeEach(() => {
             TestBed.configureTestingModule({
-                schemas: [CUSTOM_ELEMENTS_SCHEMA],
-                imports: [
-                    RouterTestingModule,
-                    HttpClientTestingModule,
-                    NgbModule,
-                    ApolloTestingModule
-                ],
-                providers: [
-                    {provide: NavigationStore, useValue: navigationMock},
-                    {provide: LanguageStore, useValue: languageStoreMock},
-                    {provide: UserPreferenceStore, useValue: userPreferenceStoreMock},
-                ],
-                declarations: [NavbarUiComponent]
-            }).compileComponents();
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    declarations: [NavbarUiComponent],
+    imports: [RouterTestingModule,
+        NgbModule,
+        ApolloTestingModule],
+    providers: [
+        { provide: NavigationStore, useValue: navigationMock },
+        { provide: LanguageStore, useValue: languageStoreMock },
+        { provide: UserPreferenceStore, useValue: userPreferenceStoreMock },
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting(),
+    ]
+}).compileComponents();
             fixture = TestBed.createComponent(NavbarUiComponent);
             component = fixture.componentInstance;
         });

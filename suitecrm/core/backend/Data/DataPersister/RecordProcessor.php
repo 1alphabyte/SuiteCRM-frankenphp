@@ -31,22 +31,25 @@ namespace App\Data\DataPersister;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Data\Entity\Record;
+use App\Data\Service\Record\ApiRecordMappers\ApiRecordMapperRunner;
 use App\Data\Service\RecordProviderInterface;
 
 class RecordProcessor implements ProcessorInterface
 {
-    /**
-     * @var RecordProviderInterface
-     */
-    private $recordProvider;
+    protected RecordProviderInterface $recordProvider;
+    protected ApiRecordMapperRunner $apiRecordMapperRunner;
 
     /**
      * RecordProcessor constructor.
      * @param RecordProviderInterface $recordProvider
+     * @param ApiRecordMapperRunner $apiRecordMapperRunner
      */
-    public function __construct(RecordProviderInterface $recordProvider)
-    {
+    public function __construct(
+        RecordProviderInterface $recordProvider,
+        ApiRecordMapperRunner $apiRecordMapperRunner
+    ) {
         $this->recordProvider = $recordProvider;
+        $this->apiRecordMapperRunner = $apiRecordMapperRunner;
     }
 
     /**
@@ -67,6 +70,11 @@ class RecordProcessor implements ProcessorInterface
      */
     public function process(mixed $record, Operation $operation, array $uriVariables = [], array $context = []): ?Record
     {
-        return $this->recordProvider->saveRecord($record);
+        $this->apiRecordMapperRunner->toInternal($record, 'save');
+        $resultingRecord = $this->recordProvider->saveRecord($record);
+        $this->apiRecordMapperRunner->toExternal($resultingRecord, 'save');
+
+        return $resultingRecord;
     }
+
 }

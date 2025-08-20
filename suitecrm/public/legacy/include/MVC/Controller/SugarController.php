@@ -181,6 +181,8 @@ class SugarController
      */
     public $hasAccess ;
 
+    public $entry_point_registry;
+
     /**
      * Map case sensitive filenames to action.  This is used for linux/unix systems
      * where filenames are case sensitive
@@ -1010,7 +1012,11 @@ class SugarController
                 require_once($this->entry_point_registry[$entryPoint]['file']);
                 $this->_processed = true;
                 $this->view = '';
+            } else {
+                $this->no_action();
             }
+        } elseif (isset($_REQUEST['entryPoint'])) {
+            $this->no_action();
         }
     }
 

@@ -24,23 +24,15 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Injectable} from '@angular/core';
+import {Injectable, signal} from '@angular/core';
 import {ValidationManager} from '../validation/validation.manager';
 import {DataTypeFormatter} from '../../formatters/data-type.formatter.service';
-import {
-    AttributeDependency,
-    BaseField,
-    DisplayType,
-    Field,
-    FieldDefinition,
-    FieldLogic,
-    FieldLogicMap,
-    isFalse,
-    isTrue,
-    ObjectMap,
-    Record,
-    ViewFieldDefinition
-} from 'common';
+import {isFalse, isTrue} from '../../../common/utils/value-utils';
+import {ObjectMap} from '../../../common/types/object-map';
+import {AttributeDependency, BaseField, DisplayType, Field, FieldDefinition} from '../../../common/record/field.model';
+import {FieldLogic, FieldLogicMap} from '../../../common/actions/field-logic-action.model';
+import {Record} from '../../../common/record/record.model';
+import {ViewFieldDefinition} from '../../../common/metadata/metadata.model';
 import {AsyncValidatorFn, UntypedFormArray, UntypedFormControl, ValidatorFn} from '@angular/forms';
 import {LanguageStore} from '../../../store/language/language.store';
 import get from 'lodash-es/get';
@@ -193,8 +185,9 @@ export class FieldBuilder {
         field.name = viewField.name || definition.name || '';
         field.vardefBased = viewField?.vardefBased ?? definition?.vardefBased ?? false;
         field.readonly = isTrue(viewField.readonly) || isTrue(definition.readonly) || false;
-        field.display = (viewField.display || definition.display || 'default') as DisplayType;
-        field.defaultDisplay = field.display;
+        field.display = signal((viewField.display || definition.display || 'default') as DisplayType);
+        field.required = signal(isTrue(definition?.required) ?? isTrue(viewField?.fieldDefinition?.required) ?? false);
+        field.defaultDisplay = field?.display();
         if (field.defaultDisplay === 'default') {
             field.defaultDisplay = 'show';
         }
@@ -225,6 +218,7 @@ export class FieldBuilder {
             field.formControl = new UntypedFormControl(formattedValue);
         }
 
+        field.useFullColumn = viewField?.useFullColumn || definition?.useFullColumn || null;
         field.attributes = {};
         field.source = 'field';
         field.logic = viewField.logic || definition.logic || null;

@@ -119,6 +119,14 @@ final class SandboxExtension extends AbstractExtension
 
     public function ensureToStringAllowed($obj, int $lineno = -1, ?Source $source = null)
     {
+        if (\is_array($obj)) {
+            foreach ($obj as $v) {
+                $this->ensureToStringAllowed($v, $lineno, $source);
+            }
+
+            return $obj;
+        }
+
         if ($this->isSandboxed($source) && \is_object($obj) && method_exists($obj, '__toString')) {
             try {
                 $this->policy->checkMethodAllowed($obj, '__toString');

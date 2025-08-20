@@ -14,11 +14,16 @@ declare(strict_types=1);
 namespace ApiPlatform\ParameterValidator\Validator;
 
 /**
- * @deprecated use Parameter constraint instead
+ * @deprecated use \ApiPlatform\Metadata\Parameter::$constraints instead
  */
 final class Enum implements ValidatorInterface
 {
     use CheckFilterDeprecationsTrait;
+
+    public function __construct()
+    {
+        trigger_deprecation('api-platform/core', '3.4', 'The class "%s" is deprecated, use "\ApiPlatform\Metadata\Parameter::$constraints" instead.', __CLASS__);
+    }
 
     /**
      * {@inheritdoc}
@@ -36,7 +41,7 @@ final class Enum implements ValidatorInterface
 
         if (null !== $enum && !\in_array($value, $enum, true)) {
             return [
-                sprintf('Query parameter "%s" must be one of "%s"', $name, implode(', ', $enum)),
+                \sprintf('Query parameter "%s" must be one of "%s"', $name, implode(', ', $enum)),
             ];
         }
 

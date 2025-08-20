@@ -24,7 +24,8 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Record, ViewMode} from 'common';
+import {Record} from '../../../../common/record/record.model';
+import {ViewMode} from '../../../../common/views/view.model';
 import {AppData} from '../../../../store/view/view.store';
 import {Metadata} from '../../../../store/metadata/metadata.store.service';
 
@@ -48,6 +49,7 @@ export interface RecordViewState {
     loading: boolean;
     widgets: boolean;
     showSidebarWidgets: boolean;
+    showBottomWidgets: boolean;
     showTopWidget: boolean;
     showSubpanels: boolean;
     mode: ViewMode;

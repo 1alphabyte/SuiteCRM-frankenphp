@@ -25,7 +25,10 @@
  */
 
 import {Injectable} from '@angular/core';
-import {Action, Field, Record, ViewMode} from 'common';
+import {Action} from '../../../common/actions/action.model';
+import {Field} from '../../../common/record/field.model';
+import {Record} from '../../../common/record/record.model';
+import {ViewMode} from '../../../common/views/view.model';
 import {FieldLogicActionData, FieldLogicActionHandler} from '../field-logic.action';
 
 @Injectable({
@@ -69,5 +72,9 @@ export class UpdateFlexRelateModuleAction extends FieldLogicActionHandler {
         field.formControl.setValue(value);
         // re-validate the parent form-control after value update
         record.formGroup.updateValueAndValidity({onlySelf: true, emitEvent: true});
+    }
+
+    getTriggeringStatus(): string[] {
+        return ['onAttributeChange'];
     }
 }

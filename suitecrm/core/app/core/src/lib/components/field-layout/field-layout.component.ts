@@ -25,7 +25,9 @@
  */
 
 import {Component, Input} from '@angular/core';
-import {FieldMap, Panel, Record} from 'common';
+import {FieldMap} from '../../common/record/field.model';
+import {Panel} from '../../common/metadata/metadata.model';
+import {Record} from '../../common/record/record.model';
 import {BreakpointObserver} from '@angular/cdk/layout';
 import {FieldGridColumn, FieldGridRow} from '../field-grid/field-grid.model';
 import {BaseFieldGridComponent} from '../field-grid/base-field-grid.component';
@@ -101,6 +103,32 @@ export class FieldLayoutComponent extends BaseFieldGridComponent {
                 const field = this.fields[fieldName] || null;
                 const fieldActions = layoutCol.fieldActions || null;
                 const adaptor = layoutCol.adaptor ?? null;
+                const useFullColumn = field?.useFullColumn ?? field?.definition?.useFullColumn ?? [];
+
+                let headerColumnClass = 'col-sm-12 col-md-12 col-lg-3';
+                let valueColumnClass = 'col-sm-12 col-md-12 col-lg-9';
+
+                const headerColSizes = {'xs': '12', 'sm': '12', 'md': '12', 'lg': '3', 'xl': '3'};
+                const valuesColSizes = {'xs': '12', 'sm': '12', 'md': '12', 'lg': '9', 'xl': '9'};
+                const useFullColumnsMaps = useFullColumn.reduce((ac,a) => ({...ac,[a]:true}),{});
+
+                if (useFullColumn.length) {
+                    headerColumnClass = Object.keys(headerColSizes).map(size => {
+                        if (useFullColumnsMaps[size]) {
+                            return `col-${size}-12`;
+                        }
+
+                        return `col-${size}-${headerColSizes[size]}`
+                    }).join(' ');
+
+                    valueColumnClass = Object.keys(valuesColSizes).map(size => {
+                        if (useFullColumnsMaps[size]) {
+                            return `col-${size}-12`;
+                        }
+
+                        return `col-${size}-${valuesColSizes[size]}`
+                    }).join(' ');
+                }
 
                 if (!field) {
                     row.cols.push({} as FieldGridColumn);
@@ -110,7 +138,9 @@ export class FieldLayoutComponent extends BaseFieldGridComponent {
                 row.cols.push({
                     field,
                     fieldActions,
-                    adaptor
+                    adaptor,
+                    valueColumnClass,
+                    headerColumnClass
                 } as FieldGridColumn);
 
                 if (this.colNumber === 1 && colIndex < layoutRow.cols.length - 1) {

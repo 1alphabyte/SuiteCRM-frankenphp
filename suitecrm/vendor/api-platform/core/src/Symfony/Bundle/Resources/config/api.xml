@@ -5,14 +5,19 @@
     xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
-        <service id="api_platform.action.not_found" class="ApiPlatform\Action\NotFoundAction" public="true" />
-        <service id="api_platform.action.not_exposed" class="ApiPlatform\Action\NotExposedAction" public="true" />
-        <service id="ApiPlatform\Action\NotFoundAction" alias="api_platform.action.not_found" public="true" />
-        <service id="ApiPlatform\Action\NotExposedAction" alias="api_platform.action.not_exposed" public="true" />
+        <service id="api_platform.action.not_found" class="ApiPlatform\Symfony\Action\NotFoundAction" public="true" />
+        <service id="api_platform.action.not_exposed" class="ApiPlatform\Symfony\Action\NotExposedAction" public="true" />
+        <service id="ApiPlatform\Symfony\Action\NotFoundAction" alias="api_platform.action.not_found" public="true" />
+        <service id="ApiPlatform\Symfony\Action\NotExposedAction" alias="api_platform.action.not_exposed" public="true" />
         <service id="api_platform.serializer" alias="serializer" />
         <service id="api_platform.property_accessor" alias="property_accessor" public="false" />
         <service id="api_platform.property_info" alias="property_info" public="false" />
         <service id="api_platform.negotiator" class="Negotiation\Negotiator" public="false" />
+        <service id="api_platform.action.error_page" class="ApiPlatform\Symfony\Action\ErrorPageAction" public="true" />
+
+        <!-- deprecated -->
+        <service id="ApiPlatform\Action\NotFoundAction" alias="api_platform.action.not_found" public="true" />
+        <service id="ApiPlatform\Action\NotExposedAction" alias="api_platform.action.not_exposed" public="true" />
 
         <service id="api_platform.resource_class_resolver" class="ApiPlatform\Metadata\ResourceClassResolver" public="false">
             <argument type="service" id="api_platform.metadata.resource.name_collection_factory" />
@@ -34,14 +39,13 @@
             <argument type="service" id="api_platform.metadata.resource.metadata_collection_factory" />
             <argument key="$debug">%kernel.debug%</argument>
         </service>
-        <service id="ApiPlatform\Serializer\SerializerContextBuilderInterface" alias="api_platform.serializer.context_builder" />
 
         <service id="api_platform.serializer.filter_parameter_provider" class="ApiPlatform\Serializer\Parameter\SerializerFilterParameterProvider" public="false">
             <argument type="service" id="api_platform.filter_locator" />
             <tag name="api_platform.parameter_provider" key="api_platform.serializer.filter_parameter_provider" priority="-895" />
         </service>
-
         <service id="ApiPlatform\Serializer\SerializerContextBuilderInterface" alias="api_platform.serializer.context_builder" />
+        <service id="ApiPlatform\State\SerializerContextBuilderInterface" alias="api_platform.serializer.context_builder" />
 
         <service id="api_platform.serializer.context_builder.filter" class="ApiPlatform\Serializer\SerializerFilterContextBuilder" decorates="api_platform.serializer.context_builder" public="false">
             <argument type="service" id="api_platform.metadata.resource.metadata_collection_factory" />
@@ -88,11 +92,20 @@
         </service>
 
         <!-- Resources Operations path resolver -->
-        <service id="api_platform.path_segment_name_generator.underscore" class="ApiPlatform\Operation\UnderscorePathSegmentNameGenerator" public="false" />
-        <service id="api_platform.path_segment_name_generator.dash" class="ApiPlatform\Operation\DashPathSegmentNameGenerator" public="false" />
+        <service id="api_platform.path_segment_name_generator.underscore" class="ApiPlatform\Metadata\Operation\UnderscorePathSegmentNameGenerator" public="false" />
+        <service id="api_platform.path_segment_name_generator.dash" class="ApiPlatform\Metadata\Operation\DashPathSegmentNameGenerator" public="false" />
 
-        <service id="api_platform.metadata.path_segment_name_generator.underscore" class="ApiPlatform\Metadata\Operation\UnderscorePathSegmentNameGenerator" public="false" />
-        <service id="api_platform.metadata.path_segment_name_generator.dash" class="ApiPlatform\Metadata\Operation\DashPathSegmentNameGenerator" public="false" />
+        <service id="api_platform.metadata.path_segment_name_generator.underscore" class="ApiPlatform\Metadata\Operation\UnderscorePathSegmentNameGenerator" public="false">
+            <argument type="service" id="api_platform.inflector" on-invalid="null" />
+        </service>
+
+        <service id="api_platform.metadata.path_segment_name_generator.dash" class="ApiPlatform\Metadata\Operation\DashPathSegmentNameGenerator" public="false">
+            <argument type="service" id="api_platform.inflector" on-invalid="null" />
+        </service>
+
+        <service id="api_platform.metadata.inflector" class="ApiPlatform\Metadata\Util\Inflector" public="false">
+            <argument>%api_platform.keep_legacy_inflector%</argument>
+        </service>
 
         <!-- Action -->
         <service id="api_platform.action.exception" class="ApiPlatform\Action\ExceptionAction" public="true">
@@ -140,17 +153,17 @@
         <service id="ApiPlatform\Api\IdentifiersExtractorInterface" alias="api_platform.api.identifiers_extractor" />
         <service id="ApiPlatform\Metadata\IdentifiersExtractorInterface" alias="api_platform.api.identifiers_extractor" />
 
-        <service id="api_platform.uri_variables.converter" class="ApiPlatform\Api\UriVariablesConverter" public="false">
+        <service id="api_platform.uri_variables.converter" class="ApiPlatform\Metadata\UriVariablesConverter" public="false">
             <argument type="service" id="api_platform.metadata.property.metadata_factory" />
             <argument type="service" id="api_platform.metadata.resource.metadata_collection_factory" />
-            <argument type="tagged" tag="api_platform.uri_variables.transformer" />
+            <argument type="tagged_iterator" tag="api_platform.uri_variables.transformer" />
         </service>
 
-        <service id="api_platform.uri_variables.transformer.integer" class="ApiPlatform\Api\UriVariableTransformer\IntegerUriVariableTransformer" public="false">
+        <service id="api_platform.uri_variables.transformer.integer" class="ApiPlatform\Metadata\UriVariableTransformer\IntegerUriVariableTransformer" public="false">
             <tag name="api_platform.uri_variables.transformer" priority="-100" />
         </service>
 
-        <service id="api_platform.uri_variables.transformer.date_time" class="ApiPlatform\Api\UriVariableTransformer\DateTimeUriVariableTransformer" public="false">
+        <service id="api_platform.uri_variables.transformer.date_time" class="ApiPlatform\Metadata\UriVariableTransformer\DateTimeUriVariableTransformer" public="false">
             <tag name="api_platform.uri_variables.transformer" priority="-100" />
         </service>
 

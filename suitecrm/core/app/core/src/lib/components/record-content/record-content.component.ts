@@ -26,11 +26,15 @@
 
 import {Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {Observable, of, Subscription} from 'rxjs';
-import {FieldMap, Panel, Record, isTrue} from 'common';
+import {FieldMap} from '../../common/record/field.model';
+import {Panel} from '../../common/metadata/metadata.model';
+import {Record} from '../../common/record/record.model';
+import {isTrue} from '../../common/utils/value-utils';
 import {map, shareReplay} from 'rxjs/operators';
 import {RecordContentConfig, RecordContentDataSource} from './record-content.model';
 import {FieldLayoutConfig, FieldLayoutDataSource} from '../field-layout/field-layout.model';
 import {LanguageStore} from '../../store/language/language.store';
+import {emptyObject} from "../../common/utils/object-utils";
 
 @Component({
     selector: 'scrm-record-content',
@@ -85,6 +89,10 @@ export class RecordContentComponent implements OnInit, OnDestroy {
 
         const tabDefs = this.mapTabDefs();
 
+        if (emptyObject(tabDefs)){
+            return;
+        }
+
         Object.keys(tabDefs).forEach(tabDefKey => {
             const tabDef = tabDefs[tabDefKey];
 
@@ -138,7 +146,7 @@ export class RecordContentComponent implements OnInit, OnDestroy {
             let isCollapsed = false;
             panel.label = panel?.label?.toUpperCase() ?? '';
             const panelKey = panel?.key?.toUpperCase() ?? '';
-            if (panel.meta.panelDefault === 'collapsed') {
+            if (panel.meta?.panelDefault === 'collapsed') {
                 isCollapsed = true;
             }
             panel.isCollapsed = isCollapsed;

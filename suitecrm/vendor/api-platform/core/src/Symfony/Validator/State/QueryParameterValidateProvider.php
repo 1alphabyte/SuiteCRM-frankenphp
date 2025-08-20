@@ -21,6 +21,9 @@ use ApiPlatform\ParameterValidator\ParameterValidator;
 use ApiPlatform\State\ProviderInterface;
 use ApiPlatform\State\Util\RequestParser;
 
+/**
+ * @deprecated the query parameter validator is deprecated
+ */
 final class QueryParameterValidateProvider implements ProviderInterface
 {
     public function __construct(private readonly ?ProviderInterface $decorated, private readonly ParameterValidator $parameterValidator)
@@ -35,6 +38,10 @@ final class QueryParameterValidateProvider implements ProviderInterface
             || !$request->isMethodSafe()
             || 'GET' !== $request->getMethod()
         ) {
+            return $this->decorated?->provide($operation, $uriVariables, $context);
+        }
+
+        if (!($operation->getExtraProperties()['use_legacy_parameter_validator'] ?? true)) {
             return $this->decorated?->provide($operation, $uriVariables, $context);
         }
 

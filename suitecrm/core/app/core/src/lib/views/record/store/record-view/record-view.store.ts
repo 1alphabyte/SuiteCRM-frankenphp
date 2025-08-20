@@ -29,25 +29,16 @@ import {BehaviorSubject, combineLatest, combineLatestWith, Observable, of, Subsc
 import {catchError, distinctUntilChanged, finalize, map, take, tap} from 'rxjs/operators';
 import {inject, Injectable} from '@angular/core';
 import {Params} from '@angular/router';
-import {
-    BooleanMap,
-    deepClone,
-    FieldDefinitionMap,
-    FieldLogicMap,
-    FieldMetadata,
-    isVoid,
-    ObjectMap,
-    Panel,
-    PanelRow,
-    Record,
-    StatisticsMap,
-    StatisticsQueryMap,
-    SubPanelMeta,
-    ViewContext,
-    ViewFieldDefinition,
-    ViewFieldDefinitionMap,
-    ViewMode,
-} from 'common';
+import {isVoid} from '../../../../common/utils/value-utils';
+import {deepClone} from '../../../../common/utils/object-utils';
+import {BooleanMap} from '../../../../common/types/boolean-map';
+import {FieldDefinitionMap, FieldMetadata} from '../../../../common/record/field.model';
+import {FieldLogicMap} from '../../../../common/actions/field-logic-action.model';
+import {Record} from '../../../../common/record/record.model';
+import {Panel, PanelRow, ViewFieldDefinition, ViewFieldDefinitionMap} from '../../../../common/metadata/metadata.model';
+import {StatisticsMap, StatisticsQueryMap} from '../../../../common/statistics/statistics.model';
+import {SubPanelMeta} from '../../../../common/metadata/subpanel.metadata.model';
+import {ViewContext, ViewMode} from '../../../../common/views/view.model';
 import {RecordViewData, RecordViewModel, RecordViewState} from './record-view.store.model';
 import {NavigationStore} from '../../../../store/navigation/navigation.store';
 import {StateStore} from '../../../../store/state';
@@ -76,6 +67,7 @@ import {PanelLogicManager} from '../../../../components/panel-logic/panel-logic.
 import {RecordConvertService} from "../../../../services/record/record-convert.service";
 import {FieldActionsAdapterFactory} from "../../../../components/field-layout/adapters/field.actions.adapter.factory";
 import {RecordValidationHandler} from "../../../../services/record/validation/record-validation.handler";
+import {ObjectMap} from "../../../../common/types/object-map";
 
 const initialState: RecordViewState = {
     module: '',
@@ -83,6 +75,7 @@ const initialState: RecordViewState = {
     loading: false,
     widgets: false,
     showSidebarWidgets: false,
+    showBottomWidgets: false,
     showTopWidget: false,
     showSubpanels: false,
     mode: 'detail',
@@ -104,6 +97,7 @@ export class RecordViewStore extends ViewStore implements StateStore {
     loading$: Observable<boolean>;
     widgets$: Observable<boolean>;
     showSidebarWidgets$: Observable<boolean>;
+    showBottomWidgets$: Observable<boolean>;
     showTopWidget$: Observable<boolean>;
     showSubpanels$: Observable<boolean>;
     mode$: Observable<ViewMode>;
@@ -169,6 +163,7 @@ export class RecordViewStore extends ViewStore implements StateStore {
         this.loading$ = this.state$.pipe(map(state => state.loading));
         this.widgets$ = this.state$.pipe(map(state => state.widgets));
         this.showSidebarWidgets$ = this.state$.pipe(map(state => state.showSidebarWidgets));
+        this.showBottomWidgets$ = this.state$.pipe(map(state => state.showBottomWidgets));
         this.showTopWidget$ = this.state$.pipe(map(state => state.showTopWidget));
         this.showSubpanels$ = this.state$.pipe(map(state => state.showSubpanels));
         this.mode$ = this.state$.pipe(map(state => state.mode));
@@ -219,6 +214,17 @@ export class RecordViewStore extends ViewStore implements StateStore {
         this.updateState({
             ...this.internalState,
             showSidebarWidgets: show
+        });
+    }
+
+    get showBottomWidgets(): boolean {
+        return this.internalState.showBottomWidgets;
+    }
+
+    set showBottomWidgets(show: boolean) {
+        this.updateState({
+            ...this.internalState,
+            showBottomWidgets: show
         });
     }
 
@@ -303,7 +309,7 @@ export class RecordViewStore extends ViewStore implements StateStore {
         return this.load().pipe(
             tap(() => {
                 this.showTopWidget = true;
-                this.loadSubpanelStatistics(module);
+                setTimeout(() => this.loadSubpanelStatistics(module), 1500);
                 this.parseParams(params);
             })
         );
@@ -671,6 +677,8 @@ export class RecordViewStore extends ViewStore implements StateStore {
         } else {
             this.showSidebarWidgets = show;
         }
+
+        this.showBottomWidgets = true;
 
         this.widgets = show;
     }

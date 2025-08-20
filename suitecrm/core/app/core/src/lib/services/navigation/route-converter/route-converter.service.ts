@@ -37,8 +37,6 @@ import {ModuleNameMapper} from '../module-name-mapper/module-name-mapper.service
 import {ActionNameMapper} from '../action-name-mapper/action-name-mapper.service';
 import {SystemConfigStore} from '../../../store/system-config/system-config.store';
 
-const ROUTE_PREFIX = './#';
-
 export interface RouteInfo {
     module?: string;
     action?: string;

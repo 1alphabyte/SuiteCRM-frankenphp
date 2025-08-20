@@ -16,8 +16,8 @@ namespace ApiPlatform\Symfony\Bundle\DependencyInjection;
 use ApiPlatform\Doctrine\Common\Filter\OrderFilterInterface;
 use ApiPlatform\Elasticsearch\Metadata\Document\DocumentMetadata;
 use ApiPlatform\Elasticsearch\State\Options;
-use ApiPlatform\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\ParameterValidator\Exception\ValidationExceptionInterface;
@@ -87,16 +87,19 @@ final class Configuration implements ConfigurationInterface
                 ->end()
                 ->booleanNode('show_webby')->defaultTrue()->info('If true, show Webby on the documentation page')->end()
                 ->booleanNode('event_listeners_backward_compatibility_layer')->defaultNull()->info('If true API Platform uses Symfony event listeners instead of providers and processors.')->end()
+                ->booleanNode('use_deprecated_json_schema_type_factory')->defaultNull()->info('Use the deprecated type factory, this option will be removed in 4.0.')->end()
                 ->booleanNode('use_symfony_listeners')->defaultNull()->info(sprintf('Uses Symfony event listeners instead of the %s.', MainController::class))->end()
                 ->scalarNode('name_converter')->defaultNull()->info('Specify a name converter to use.')->end()
                 ->scalarNode('asset_package')->defaultNull()->info('Specify an asset package name to use.')->end()
                 ->scalarNode('path_segment_name_generator')->defaultValue('api_platform.metadata.path_segment_name_generator.underscore')->info('Specify a path name generator to use.')->end()
+                ->scalarNode('inflector')->defaultValue('api_platform.metadata.inflector')->info('Specify an inflector to use.')->end()
                 ->arrayNode('validator')
                     ->addDefaultsIfNotSet()
                     ->children()
                         ->variableNode('serialize_payload_fields')->defaultValue([])->info('Set to null to serialize all payload fields when a validation error is thrown, or set the fields you want to include explicitly.')->end()
                         ->booleanNode('query_parameter_validation')->defaultValue(true)->end()
                         ->booleanNode('legacy_validation_exception')->defaultValue(true)->info('Uses the legacy "%s" instead of "%s".', LegacyValidationException::class, ValidationException::class)->end()
+                        ->booleanNode('legacy_query_parameter_validation')->defaultValue(true)->info('Use the legacy query validation system.')->end()
                     ->end()
                 ->end()
                 ->arrayNode('eager_loading')
@@ -123,7 +126,7 @@ final class Configuration implements ConfigurationInterface
                         ->scalarNode('exists_parameter_name')->defaultValue('exists')->cannotBeEmpty()->info('The name of the query parameter to filter on nullable field values.')->end()
                         ->scalarNode('order')->defaultValue('ASC')->info('The default order of results.')->end() // Default ORDER is required for postgresql and mysql >= 5.7 when using LIMIT/OFFSET request
                         ->scalarNode('order_parameter_name')->defaultValue('order')->cannotBeEmpty()->info('The name of the query parameter to order results.')->end()
-                        ->enumNode('order_nulls_comparison')->defaultNull()->values(array_merge(array_keys(OrderFilterInterface::NULLS_DIRECTION_MAP), [null]))->info('The nulls comparison strategy.')->end()
+                        ->enumNode('order_nulls_comparison')->defaultNull()->values(interface_exists(OrderFilterInterface::class) ? array_merge(array_keys(OrderFilterInterface::NULLS_DIRECTION_MAP), [null]) : [null])->info('The nulls comparison strategy.')->end()
                         ->arrayNode('pagination')
                             ->canBeDisabled()
                             ->addDefaultsIfNotSet()
@@ -146,6 +149,12 @@ final class Configuration implements ConfigurationInterface
                 ->end()
                 ->arrayNode('resource_class_directories')
                     ->prototype('scalar')->end()
+                ->end()
+                ->arrayNode('serializer')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('hydra_prefix')->defaultNull()->info('Use the "hydra:" prefix.')->end()
+                    ->end()
                 ->end()
             ->end();
 
@@ -459,7 +468,7 @@ final class Configuration implements ConfigurationInterface
                             ->prototype('array')
                                 ->children()
                                     ->scalarNode('index')->defaultNull()->end()
-                                    ->scalarNode('type')->defaultValue(DocumentMetadata::DEFAULT_TYPE)->end()
+                                    ->scalarNode('type')->defaultValue(class_exists(DocumentMetadata::class) ? DocumentMetadata::DEFAULT_TYPE : '_doc')->end()
                                 ->end()
                             ->end()
                         ->end()

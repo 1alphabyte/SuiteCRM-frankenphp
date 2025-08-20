@@ -15,6 +15,7 @@ namespace ApiPlatform\Elasticsearch\Metadata\Document\Factory;
 
 use ApiPlatform\Elasticsearch\Exception\IndexNotFoundException;
 use ApiPlatform\Elasticsearch\Metadata\Document\DocumentMetadata;
+use ApiPlatform\Metadata\InflectorInterface;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\Util\Inflector;
 use Elastic\Elasticsearch\Exception\ClientResponseException;
@@ -32,7 +33,7 @@ use Elasticsearch\Common\Exceptions\Missing404Exception;
 final class CatDocumentMetadataFactory implements DocumentMetadataFactoryInterface
 {
     // @phpstan-ignore-next-line
-    public function __construct(private readonly Client $client, private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory, private readonly ?DocumentMetadataFactoryInterface $decorated = null)
+    public function __construct(private readonly Client $client, private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory, private readonly ?DocumentMetadataFactoryInterface $decorated = null, private readonly ?InflectorInterface $inflector = new Inflector())
     {
     }
 
@@ -61,7 +62,7 @@ final class CatDocumentMetadataFactory implements DocumentMetadataFactoryInterfa
             return $this->handleNotFound($documentMetadata, $resourceClass);
         }
 
-        $index = Inflector::tableize($resourceShortName);
+        $index = $this->inflector->tableize($resourceShortName);
 
         try {
             // @phpstan-ignore-next-line
@@ -83,6 +84,6 @@ final class CatDocumentMetadataFactory implements DocumentMetadataFactoryInterfa
             return $documentMetadata;
         }
 
-        throw new IndexNotFoundException(sprintf('No index associated with the "%s" resource class.', $resourceClass));
+        throw new IndexNotFoundException(\sprintf('No index associated with the "%s" resource class.', $resourceClass));
     }
 }

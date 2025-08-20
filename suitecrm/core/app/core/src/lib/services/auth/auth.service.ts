@@ -25,11 +25,13 @@
  */
 
 import {Injectable} from '@angular/core';
-import {Router} from '@angular/router';
+import {ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree} from '@angular/router';
 import {HttpClient, HttpErrorResponse, HttpHeaders, HttpParams} from '@angular/common/http';
-import {BehaviorSubject, Observable, Subscription, throwError} from 'rxjs';
-import {catchError, distinctUntilChanged, filter, finalize, take} from 'rxjs/operators';
-import {isEmptyString, isTrue, User} from 'common';
+import {BehaviorSubject, Observable, of, Subscription, throwError} from 'rxjs';
+import {catchError, distinctUntilChanged, filter, finalize, map, take, tap} from 'rxjs/operators';
+import {User} from '../../common/types/user';
+import {emptyObject} from '../../common/utils/object-utils';
+import {isEmptyString, isTrue} from '../../common/utils/value-utils';
 import {MessageService} from '../message/message.service';
 import {StateManager} from '../../store/state-manager';
 import {LanguageStore} from '../../store/language/language.store';
@@ -37,7 +39,7 @@ import {AppStateStore} from '../../store/app-state/app-state.store';
 import {LocalStorageService} from '../local-storage/local-storage.service';
 import {SystemConfigStore} from '../../store/system-config/system-config.store';
 import {BaseRouteService} from "../base-route/base-route.service";
-import {NotificationStore} from '../../store/notification/notification.store';
+import {NotificationStore} from "../../store/notification/notification.store";
 
 export interface SessionStatus {
     appStatus?: AppStatus;
@@ -51,6 +53,7 @@ export interface SessionStatus {
 export interface AppStatus {
     installed?: boolean;
     locked?: boolean;
+    loginWizardCompleted?: boolean;
 }
 
 @Injectable({
@@ -95,7 +98,8 @@ export class AuthService {
         username: string,
         password: string,
         onSuccess: (response: string) => void,
-        onError: (error: HttpErrorResponse) => void
+        onError: (error: HttpErrorResponse) => void,
+        onTwoFactor: (error: HttpErrorResponse) => void
     ): Subscription {
         let loginUrl = 'login';
         loginUrl = this.baseRoute.appendNativeAuth(loginUrl);
@@ -113,6 +117,12 @@ export class AuthService {
             {headers}
         ).subscribe((response: any) => {
 
+            if (response?.two_factor_complete === 'false') {
+                this.isUserLoggedIn.next(false);
+                onTwoFactor(response);
+                return;
+            }
+
             if (this.baseRoute.isNativeAuth()) {
                 window.location.href = this.baseRoute.removeNativeAuth();
             }
@@ -121,8 +131,11 @@ export class AuthService {
             onSuccess(response);
             this.isUserLoggedIn.next(true);
             this.setCurrentUser(response);
-            this.notificationStore.enableNotifications();
-            this.notificationStore.refreshNotifications();
+            setTimeout(() => {
+                this.notificationStore.enableNotifications();
+                this.notificationStore.refreshNotifications();
+            }, 2000);
+
         }, (error: HttpErrorResponse) => {
             onError(error);
         });
@@ -164,6 +177,92 @@ export class AuthService {
                 }
             )
         }
+    }
+
+    public enable2fa(): Observable<any> {
+        let route = './2fa/enable';
+        route = this.baseRoute.appendNativeAuth(route);
+
+        route = this.baseRoute.calculateRoute(route);
+
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+
+        return this.http.get(route, {headers});
+    }
+
+    public disable2fa(): Observable<any> {
+        let route = './2fa/disable';
+        route = this.baseRoute.appendNativeAuth(route);
+
+        route = this.baseRoute.calculateRoute(route);
+
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+
+        return this.http.get(route, {headers});
+    }
+
+    public check2fa(code: string): Observable<any> {
+
+        let route = './2fa_check';
+
+        route = this.baseRoute.appendNativeAuth(route);
+        route = this.baseRoute.calculateRoute(route);
+
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json; charset=utf-8',
+        });
+
+        return this.http.post(route, {_auth_code: code}, {headers: headers});
+    }
+
+    public finalize2fa(code: string): Observable<any> {
+
+        let route = './2fa/enable-finalize';
+
+        route = this.baseRoute.appendNativeAuth(route);
+        route = this.baseRoute.calculateRoute(route);
+
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+        });
+
+        const body = JSON.stringify({_auth_code: code});
+
+        return this.http.post(route, {auth_code: code}, {headers: headers});
+    }
+
+    setLanguage(result: any): void {
+        this.languageStore.setSessionLanguage()
+            .pipe(catchError(() => of({})))
+            .subscribe(() => {
+                if (result && result.redirect && result.redirect.route) {
+                    this.router.navigate(
+                        [result.redirect.route],
+                        {
+                            queryParams: result.redirect.queryParams ?? {}
+                        }).then();
+                    return;
+                }
+
+                if (this.appStateStore.getPreLoginUrl()) {
+                    this.router.navigateByUrl(this.appStateStore.getPreLoginUrl()).then(() => {
+                        this.appStateStore.setPreLoginUrl('');
+                    });
+                    return;
+                }
+
+                const defaultModule = this.configs.getHomePage();
+                this.router.navigate(['/' + defaultModule]).then();
+            });
+
+        if (this.configs.getConfigValue('login_language')) {
+            this.languageStore.setUserLanguage().subscribe();
+        }
+        return;
     }
 
     /**
@@ -247,6 +346,89 @@ export class AuthService {
         const headers = new HttpHeaders().set('Content-Type', 'text/plain; charset=utf-8');
 
         return this.http.get(url, {headers});
+    }
+
+    /**
+     * Authorize user session
+     *
+     * @returns {object} Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree
+     * @param {ActivatedRouteSnapshot} route information about the current route
+     * @param snapshot
+     */
+    public authorizeUserSession(route: ActivatedRouteSnapshot, snapshot: RouterStateSnapshot): Observable<boolean | UrlTree> {
+
+        if (this.isUserLoggedIn.value && route.data.checkSession !== true) {
+            return of(true);
+        }
+
+        let sessionExpiredUrl = this.getSessionExpiredRoute();
+        const redirect = this.sessionExpiredRedirect();
+
+        const sessionExpiredUrlTree: UrlTree = this.router.parseUrl(sessionExpiredUrl);
+
+        return this.fetchSessionStatus()
+            .pipe(
+                take(1),
+                map((user: SessionStatus) => {
+
+                    const isLoginWizardCompleted = user.appStatus.loginWizardCompleted ?? false;
+                    this.appStateStore.setLoginWizardComplete(isLoginWizardCompleted);
+
+                    if (user && user.appStatus.installed === false) {
+                        return this.router.parseUrl('install');
+                    }
+
+                    if (user && user.active === true) {
+                        const wasLoggedIn = !!this.appStateStore.getCurrentUser();
+                        this.setCurrentUser(user);
+
+                        if (!wasLoggedIn) {
+                            this.languageStore.appStrings$.pipe(
+                                filter(appStrings => appStrings && !emptyObject(appStrings)),
+                                tap(() => {
+                                    setTimeout(() => {
+                                        this.notificationStore.enableNotifications();
+                                        this.notificationStore.refreshNotifications();
+                                    }, 2000);
+                                }),
+                                take(1)
+                            ).subscribe();
+                        }
+
+                        if (user?.redirect?.route && (!snapshot.url.includes(user.redirect.route))) {
+                            const redirectUrlTree: UrlTree = this.router.parseUrl(user.redirect.route);
+                            redirectUrlTree.queryParams = user?.redirect?.queryParams ?? {}
+                            return redirectUrlTree;
+                        }
+
+                        return true;
+                    }
+                    this.appStateStore.setPreLoginUrl(snapshot.url);
+                    this.resetState();
+
+                    if (redirect) {
+                        this.handleSessionExpiredRedirect();
+                        return false;
+                    }
+
+                    // Re-direct to login
+                    return sessionExpiredUrlTree;
+                }),
+                catchError(() => {
+                    if (redirect) {
+                        this.handleSessionExpiredRedirect();
+                        return of(false);
+                    }
+
+                    this.logout('LBL_SESSION_EXPIRED', false);
+                    return of(sessionExpiredUrlTree);
+                }),
+                tap((result: boolean | UrlTree) => {
+                    if (result === true) {
+                        this.isUserLoggedIn.next(true);
+                    }
+                })
+            );
     }
 
     /**

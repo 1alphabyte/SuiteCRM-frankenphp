@@ -124,16 +124,17 @@ class AccountsNewByMonth extends LegacyHandler implements StatisticsProviderInte
 
         $result = $this->runQuery($query, $bean);
 
-        $nameField = 'month';
+        $nameField = 'yearmonth';
         $valueField = 'value';
-        $groupingFields = 'name';
+        $groupingFields = '';
         $months = $this->getMonths();
 
-        $series = $this->buildMultiSeries($result, $groupingFields, $nameField, $valueField, $months);
+        $series = $this->buildMultiSeries($result, $groupingFields, $nameField, $valueField, $months, true);
 
         $chartOptions = new ChartOptions();
         $chartOptions->yAxisTickFormatting = true;
         $chartOptions->xAxisTicks = $months;
+        $chartOptions->legend = false;
 
         $statistic = $this->buildSeriesResponse(self::KEY, 'int', $series, $chartOptions);
 
@@ -156,7 +157,25 @@ class AccountsNewByMonth extends LegacyHandler implements StatisticsProviderInte
      */
     protected function getMonths(): array
     {
-        return [1,2,3,4,5,6,7,8,9,10,11,12];
+        $currentDate = date('Y-m-d');
+        $currentYear = date('Y', strtotime($currentDate));
+        $currentMonth = date('n', strtotime($currentDate));
+
+        $months = [];
+
+        for ($i = 0; $i < 12; $i++) {
+            $newMonth = $currentMonth - $i;
+
+            if ($newMonth <= 0) {
+                $newMonth += 12;
+                $newYear = $currentYear - 1;
+            } else {
+                $newYear = $currentYear;
+            }
+
+            $months[] = $newYear . '-' . str_pad($newMonth, 2, '0', STR_PAD_LEFT);
+        }
+        return array_reverse($months);
     }
 
     /**
@@ -176,10 +195,18 @@ class AccountsNewByMonth extends LegacyHandler implements StatisticsProviderInte
      */
     protected function generateQuery(array $query): array
     {
-        $query['select'] = 'SELECT COUNT(accounts.name) as value, EXTRACT(MONTH FROM accounts.date_entered) as month, accounts.account_type as name';
-        $query['where'] .= ' AND accounts.account_type is not null ';
+        $currentDate = date('Y-m-d');
+
+        $nextMonth = date('Y-m-d', strtotime($currentDate . ' first day of next month'));
+        $lastYear = date('Y-m-d', strtotime($nextMonth . ' -1 year'));
+
+        $startDate = date('Y-m-d', strtotime($lastYear . ' -1 day'));
+        $endDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
+
+        $query['select'] = "SELECT COUNT(accounts.name) as value, CONCAT(EXTRACT(YEAR FROM accounts.date_entered), '-', LPAD(EXTRACT(MONTH FROM accounts.date_entered), 2, '0')) as yearmonth";
+        $query['where'] .= " AND accounts.date_entered > '$startDate' AND accounts.date_entered < '$endDate' ";
         $query['order_by'] = '';
-        $query['group_by'] = ' GROUP BY EXTRACT(MONTH FROM accounts.date_entered), accounts.account_type';
+        $query['group_by'] = "GROUP BY yearmonth";
 
         return $query;
     }

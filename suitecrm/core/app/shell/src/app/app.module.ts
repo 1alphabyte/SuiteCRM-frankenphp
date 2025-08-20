@@ -24,19 +24,22 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {APP_INITIALIZER, NgModule} from '@angular/core';
+import {APP_INITIALIZER, NgModule, provideExperimentalZonelessChangeDetection} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
-import {HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule} from '@angular/common/http';
+import {
+    HTTP_INTERCEPTORS,
+    provideHttpClient,
+    withInterceptorsFromDi,
+    withXsrfConfiguration
+} from '@angular/common/http';
 
 import {Apollo, ApolloModule} from 'apollo-angular';
 import {HttpLink} from 'apollo-angular/http';
 import {ApolloLink, InMemoryCache} from '@apollo/client/core';
 import {FetchPolicy} from '@apollo/client/core/watchQueryOptions';
 import {onError} from '@apollo/client/link/error';
-
 import {AppRoutingModule} from './app-routing.module';
 import {AppComponent} from './app.component';
-
 import {
     AppStateStore,
     AuthService,
@@ -58,17 +61,16 @@ import {
     NavbarUiModule,
     RecordListModalModule,
     RecordModule,
-    TableModule,
-    SidebarComponent
+    SidebarComponent,
+    TableModule
 } from 'core';
 
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
-
 import {environment} from '../environments/environment';
 import {RouteReuseStrategy} from '@angular/router';
 import {AppRouteReuseStrategy} from './app-router-reuse-strategy';
-import {AppInit} from '@app/app-initializer';
+import {AppInit} from './app-initializer';
 import {GraphQLError} from 'graphql';
 import {AngularSvgIconModule} from 'angular-svg-icon';
 
@@ -78,10 +80,8 @@ export const initializeApp = (appInitService: AppInit) => (): Promise<any> => ap
     declarations: [
         AppComponent,
     ],
-    imports: [
+    bootstrap: [AppComponent], imports: [
         BrowserModule,
-        HttpClientModule,
-        HttpClientXsrfModule,
         AppRoutingModule,
         FooterUiModule,
         NavbarUiModule,
@@ -109,15 +109,21 @@ export const initializeApp = (appInitService: AppInit) => (): Promise<any> => ap
     providers: [
         {provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true},
         {provide: RouteReuseStrategy, useClass: AppRouteReuseStrategy},
+        provideExperimentalZonelessChangeDetection(),
         AppInit,
         {
             provide: APP_INITIALIZER,
             useFactory: initializeApp,
             multi: true,
             deps: [AppInit]
-        }
+        },
+        provideHttpClient(withInterceptorsFromDi(),
+            withXsrfConfiguration({
+                cookieName: 'XSRF-TOKEN',
+                headerName: 'X-XSRF-TOKEN'
+            })
+        )
     ],
-    bootstrap: [AppComponent]
 })
 export class AppModule {
     constructor(apollo: Apollo, httpLink: HttpLink, protected auth: AuthService, protected appStore: AppStateStore, protected baseRoute: BaseRouteService) {

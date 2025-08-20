@@ -22,6 +22,8 @@ use ApiPlatform\State\Util\RequestParser;
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
  *
+ * @deprecated use ApiPlatform\Metadata\Util\IriHelper instead
+ *
  * @internal
  */
 final class IriHelper
@@ -39,7 +41,7 @@ final class IriHelper
     {
         $parts = parse_url($iri);
         if (false === $parts) {
-            throw new InvalidArgumentException(sprintf('The request URI "%s" is malformed.', $iri));
+            throw new InvalidArgumentException(\sprintf('The request URI "%s" is malformed.', $iri));
         }
 
         $parameters = [];

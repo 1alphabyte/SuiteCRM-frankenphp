@@ -51,7 +51,7 @@ final class XmlResourceExtractor extends AbstractResourceExtractor
             try {
                 simplexml_import_dom(XmlUtils::loadFile($path, XmlPropertyExtractor::SCHEMA));
             } catch (\InvalidArgumentException) {
-                throw new InvalidArgumentException(sprintf('Error while parsing %s: %s', $path, $e->getMessage()), $e->getCode(), $e);
+                throw new InvalidArgumentException(\sprintf('Error while parsing %s: %s', $path, $e->getMessage()), $e->getCode(), $e);
             }
 
             // It's a property: ignore error
@@ -61,7 +61,6 @@ final class XmlResourceExtractor extends AbstractResourceExtractor
         foreach ($xml->resource as $resource) {
             $base = $this->buildExtendedBase($resource);
             $this->resources[$this->resolve((string) $resource['class'])][] = array_merge($base, [
-                'class' => $this->phpize($resource, 'class', 'string'),
                 'operations' => $this->buildOperations($resource, $base),
                 'graphQlOperations' => $this->buildGraphQlOperations($resource, $base),
             ]);
@@ -271,10 +270,10 @@ final class XmlResourceExtractor extends AbstractResourceExtractor
             if ($toProperty = $this->phpize($data, 'toProperty', 'string')) {
                 $uriVariables[$parameterName]['to_property'] = $toProperty;
             }
-            if ($fromClass = $this->phpize($data, 'fromClass', 'string')) {
+            if ($fromClass = $this->resolve($this->phpize($data, 'fromClass', 'string'))) {
                 $uriVariables[$parameterName]['from_class'] = $fromClass;
             }
-            if ($toClass = $this->phpize($data, 'toClass', 'string')) {
+            if ($toClass = $this->resolve($this->phpize($data, 'toClass', 'string'))) {
                 $uriVariables[$parameterName]['to_class'] = $toClass;
             }
             if (isset($data->identifiers->values)) {
@@ -393,7 +392,7 @@ final class XmlResourceExtractor extends AbstractResourceExtractor
             if (\in_array((string) $operation['class'], [GetCollection::class, Post::class], true)) {
                 $datum['itemUriTemplate'] = $this->phpize($operation, 'itemUriTemplate', 'string');
             } elseif (isset($operation['itemUriTemplate'])) {
-                throw new InvalidArgumentException(sprintf('"itemUriTemplate" option is not allowed on a %s operation.', $operation['class']));
+                throw new InvalidArgumentException(\sprintf('"itemUriTemplate" option is not allowed on a %s operation.', $operation['class']));
             }
 
             $data[] = array_merge($datum, [

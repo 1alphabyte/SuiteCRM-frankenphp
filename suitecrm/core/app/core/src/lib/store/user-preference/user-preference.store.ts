@@ -27,9 +27,8 @@
 import {Injectable} from '@angular/core';
 import {BehaviorSubject, Observable, of, Subscription} from 'rxjs';
 import {debounceTime, distinctUntilChanged, map, shareReplay, take, tap} from 'rxjs/operators';
-
 import {CollectionGQL} from '../../services/api/graphql-api/api.collection.get';
-import {deepClone} from 'common';
+import {deepClone} from '../../common/utils/object-utils';
 import {StateStore} from '../state';
 import {SystemConfigStore} from '../system-config/system-config.store';
 import {ProcessService} from '../../services/process/process.service';
@@ -85,8 +84,8 @@ export class UserPreferenceStore implements StateStore {
         protected localStorage: LocalStorageService,
     ) {
         const uiSettings = config.getConfigValue('ui') ?? {};
-        const delay = uiSettings.user_preferences_save_delay ?? 5000;
-        this.saveBuffer$ = this.saveBufferStore.asObservable().pipe(debounceTime(delay ?? 5000));
+        const delay = uiSettings.user_preferences_save_delay ?? 2500;
+        this.saveBuffer$ = this.saveBufferStore.asObservable().pipe(debounceTime(delay ?? 2500));
         this.subs.push(this.saveBuffer$.subscribe((value) => {
             if (!value) {
                 return;

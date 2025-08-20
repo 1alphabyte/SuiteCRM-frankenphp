@@ -15,10 +15,10 @@ namespace ApiPlatform\Doctrine\EventListener;
 
 use ApiPlatform\Api\IriConverterInterface as LegacyIriConverterInterface;
 use ApiPlatform\Api\ResourceClassResolverInterface as LegacyResourceClassResolverInterface;
-use ApiPlatform\Exception\InvalidArgumentException;
-use ApiPlatform\Exception\OperationNotFoundException;
-use ApiPlatform\Exception\RuntimeException;
 use ApiPlatform\HttpCache\PurgerInterface;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
+use ApiPlatform\Metadata\Exception\OperationNotFoundException;
+use ApiPlatform\Metadata\Exception\RuntimeException;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\IriConverterInterface;
 use ApiPlatform\Metadata\ResourceClassResolverInterface;
@@ -36,6 +36,8 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
  * Purges responses containing modified entities from the proxy cache.
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
+ *
+ * @deprecated moved to \ApiPlatform\Doctrine\Common\EventListener\PurgeHttpCacheListener
  */
 final class PurgeHttpCacheListener
 {

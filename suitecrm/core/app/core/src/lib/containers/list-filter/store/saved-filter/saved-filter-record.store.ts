@@ -24,20 +24,13 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {
-    ColumnDefinition,
-    deepClone,
-    FieldMap,
-    FieldMetadata,
-    Option,
-    Record,
-    RecordMapperRegistry,
-    SearchCriteria,
-    SearchMetaField,
-    SearchMetaFieldMap,
-    ViewFieldDefinition,
-    ObjectMap
-} from 'common';
+import {deepClone} from '../../../../common/utils/object-utils';
+import {ColumnDefinition, SearchMetaField, SearchMetaFieldMap} from '../../../../common/metadata/list.metadata.model';
+import {FieldMap, FieldMetadata, Option} from '../../../../common/record/field.model';
+import {Record} from '../../../../common/record/record.model';
+import {RecordMapperRegistry} from '../../../../common/record/record-mappers/record-mapper.registry';
+import {SearchCriteria} from '../../../../common/views/list/search-criteria.model';
+import {ViewFieldDefinition} from '../../../../common/metadata/metadata.model';
 import {BehaviorSubject, Observable, of} from 'rxjs';
 import {shareReplay, tap} from 'rxjs/operators';
 import {RecordStore} from '../../../../store/record/record.store';
@@ -50,6 +43,7 @@ import {RecordManager} from '../../../../services/record/record.manager';
 import {FieldManager} from '../../../../services/record/field/field.manager';
 import {LanguageStore} from '../../../../store/language/language.store';
 import {signal} from "@angular/core";
+import {ObjectMap} from "../../../../common/types/object-map";
 
 const initialState = {
     id: '',
@@ -186,11 +180,11 @@ export class SavedFilterRecordStore extends RecordStore {
      */
     protected initRecord(record: SavedFilter): void {
 
-        if(this.metadata) {
+        if (this.metadata) {
             record.metadata = this.metadata;
         }
 
-        if(!record?.validationTriggered) {
+        if (!record?.validationTriggered) {
             record.validationTriggered = signal(false);
         }
 
@@ -304,7 +298,7 @@ export class SavedFilterRecordStore extends RecordStore {
             label: fieldMeta.label,
             vardefBased: fieldMeta?.vardefBased ?? false,
             readonly: fieldMeta?.readonly ?? false,
-            display: fieldMeta?.display ?? '',
+            display: fieldMeta?.display ?? 'default',
             type,
             fieldDefinition: {}
         } as ViewFieldDefinition;

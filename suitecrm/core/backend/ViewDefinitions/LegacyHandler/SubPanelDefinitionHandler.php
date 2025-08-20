@@ -104,7 +104,7 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
         SubpanelTopActionDefinitionProviderInterface $subpanelTopActionDefinitionProvider,
         SubpanelLineActionDefinitionProviderInterface $subpanelLineActionDefinitionProvider,
         FieldAliasMapper $fieldAliasMapper,
-        RequestStack $session
+        RequestStack $session,
     ) {
         parent::__construct(
             $projectDir,
@@ -203,6 +203,7 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
                 $columnSubpanel = $subpanel->get_header_panel_def();
                 $headerModule = $this->moduleNameMapper->toFrontEnd($columnSubpanel->get_module_name());
                 $extraModuleVardefs = $this->getCollectionListVardefs($tab['collection_list']);
+
             } else {
                 $headerModule = $this->getHeaderModule($tab);
             }
@@ -215,9 +216,10 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
             $tabs[$key]['legacyModule'] = $tab['module'];
             $tabs[$key]['headerModule'] = $headerModule;
             $tabs[$key]['top_buttons'] = $this->mapButtons($subpanel, $tab);
-            $tabs[$key]['insightWidget'] = $this->mapInsightWidget($subpanel, $tabs, $key, $tab);
+            $tabs[$key]['subpanelWidget'] = $this->mapInsightWidget($subpanel, $tabs, $key, $tab);
             $tabs[$key]['lineActions'] = $this->getSubpanelLineActions($subpanel, $tabs[$key]['module']);
             $tabs[$key]['searchdefs'] = $this->getSearchdefs($subpanel);
+            $tabs[$key]['order'] = $tab['order'];
 
             if (empty($columnSubpanel)) {
                 continue;
@@ -334,6 +336,11 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
                     'width' => $field['width'] ?? '',
                     'enable_range_search' => $field['enable_range_search'] ?? '',
                 ];
+
+                if (!empty($field['name'] ?? false) && str_contains($field['name'], '_only')) {
+                    $fieldDefinition['displayType'] = 'checkbox';
+                }
+
                 $field['fieldDefinition'] = $fieldDefinition;
             }
 
@@ -449,11 +456,11 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
      */
     protected function mapInsightWidget($subpanel, array $tabs, $key, $tab): array
     {
-        if (!empty($subpanel->panel_definition['insightWidget'])) {
+        if (!empty($subpanel->panel_definition['subpanelWidget'])) {
             $widgetConfig = [
                 'type' => 'statistics',
                 'options' => [
-                    'insightWidget' => $subpanel->panel_definition['insightWidget']
+                    'subpanelWidget' => $subpanel->panel_definition['subpanelWidget']
                 ]
             ];
 
@@ -462,7 +469,7 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
             return $widgetConfig;
         }
 
-        if (empty($tabs[$key]['insightWidget'])) {
+        if (empty($tabs[$key]['subpanelWidget'])) {
             return $this->getDefaultWidgetConfig($tabs, $key, $tab);
         }
 
@@ -480,7 +487,7 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
         return [
             'type' => 'statistics',
             'options' => [
-                'insightWidget' => [
+                'subpanelWidget' => [
                     'rows' => [
                         [
                             'justify' => 'end',
@@ -488,37 +495,16 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
                                 [
                                     'icon' => $tab['module'],
                                 ],
-                            ]
-                        ],
-                        [
-                            'align' => 'end',
-                            'justify' => 'start',
-                            'class' => 'flex-grow-1',
-                            'cols' => [
-                                [
-                                    'statistic' => $tabs[$key]['module'],
-                                    'class' => 'sub-panel-banner-value',
-                                    'bold' => true,
-                                ],
-                            ]
-                        ],
-                        [
-                            'justify' => 'start',
-                            'cols' => [
-                                [
-                                    'descriptionKey' => $tabs[$key]['title_key'] . '_INSIGHT_DESCRIPTION',
-                                    'class' => 'sub-panel-banner-tooltip',
-                                ]
-                            ]
-                        ],
-                        [
-                            'justify' => 'start',
-                            'cols' => [
                                 [
                                     'labelKey' => $tabs[$key]['title_key'],
                                     'class' => 'sub-panel-banner-button-title',
                                     'bold' => true,
-                                ]
+                                ],
+                                [
+                                    'statistic' => 'default',
+                                    'class' => 'sub-panel-banner-value',
+                                    'bold' => true,
+                                ],
                             ]
                         ],
                     ]
@@ -551,7 +537,7 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
      */
     protected function replaceVariables(array $tabs, $key, array &$widgetConfig, &$widgetRows): void
     {
-        $widgetRows = $widgetConfig['options']['insightWidget']['rows'] ?? [];
+        $widgetRows = $widgetConfig['options']['subpanelWidget']['rows'] ?? [];
 
         foreach ($widgetRows as $rowKey => $row) {
             $cols = $row['cols'] ?? [];
@@ -560,8 +546,8 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
             }
         }
 
-        if (isset($widgetConfig['options']['insightWidget']['rows'])) {
-            $widgetConfig['options']['insightWidget']['rows'] = $widgetRows;
+        if (isset($widgetConfig['options']['subpanelWidget']['rows'])) {
+            $widgetConfig['options']['subpanelWidget']['rows'] = $widgetRows;
         }
     }
 
@@ -597,8 +583,10 @@ class SubPanelDefinitionHandler extends LegacyHandler implements SubPanelDefinit
                 ) {
                     $lineAction = $subpanelLineActions[$list_field['name']];
                     $moduleName = $this->moduleNameMapper->toFrontEnd($subpanelModule);
-                    $lineActions[] = $this->subpanelLineActionDefinitionProvider->getLineAction($moduleName,
-                        $lineAction);
+                    $lineActions[] = $this->subpanelLineActionDefinitionProvider->getLineAction(
+                        $moduleName,
+                        $lineAction
+                    );
                 }
             }
         }

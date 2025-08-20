@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Symfony\Routing;
 
-use ApiPlatform\Exception\ItemNotFoundException;
+use ApiPlatform\Metadata\Exception\ItemNotFoundException;
 use ApiPlatform\Metadata\IriConverterInterface;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\UrlGeneratorInterface;
@@ -43,7 +43,7 @@ final class SkolemIriConverter implements IriConverterInterface
      */
     public function getResourceFromIri(string $iri, array $context = [], ?Operation $operation = null): object
     {
-        throw new ItemNotFoundException(sprintf('Item not found for "%s".', $iri));
+        throw new ItemNotFoundException(\sprintf('Item not found for "%s".', $iri));
     }
 
     /**

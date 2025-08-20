@@ -28,6 +28,8 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
  * Validates query parameters depending on filter description.
  *
  * @author Julien Deniau <julien.deniau@mapado.com>
+ *
+ * @deprecated
  */
 final class QueryParameterValidateListener
 {
@@ -42,7 +44,6 @@ final class QueryParameterValidateListener
         if ($queryParameterValidator instanceof ProviderInterface) {
             $this->provider = $queryParameterValidator;
         } else {
-            trigger_deprecation('api-platform/core', '3.3', 'Use a "%s" as first argument in "%s" instead of "%s".', ProviderInterface::class, self::class, ParameterValidator::class);
             $this->queryParameterValidator = $queryParameterValidator;
         }
 
@@ -64,6 +65,10 @@ final class QueryParameterValidateListener
         }
 
         if ('api_platform.symfony.main_controller' === $operation?->getController()) {
+            return;
+        }
+
+        if (!($operation->getExtraProperties()['use_legacy_parameter_validator'] ?? true)) {
             return;
         }
 

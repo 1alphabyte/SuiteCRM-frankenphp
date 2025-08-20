@@ -59,15 +59,11 @@ final class AttributePropertyMetadataFactory implements PropertyMetadataFactoryI
             return $this->handleNotFound($parentPropertyMetadata, $resourceClass, $property);
         }
 
-        if ($reflectionEnum) {
-            if ($reflectionEnum->hasCase($property)) {
-                $reflectionCase = $reflectionEnum->getCase($property);
-                if ($attributes = $reflectionCase->getAttributes(ApiProperty::class)) {
-                    return $this->createMetadata($attributes[0]->newInstance(), $parentPropertyMetadata);
-                }
+        if ($reflectionEnum && $reflectionEnum->hasCase($property)) {
+            $reflectionCase = $reflectionEnum->getCase($property);
+            if ($attributes = $reflectionCase->getAttributes(ApiProperty::class)) {
+                return $this->createMetadata($attributes[0]->newInstance(), $parentPropertyMetadata);
             }
-
-            return $this->handleNotFound($parentPropertyMetadata, $resourceClass, $property);
         }
 
         if ($reflectionClass->hasProperty($property)) {
@@ -79,17 +75,25 @@ final class AttributePropertyMetadataFactory implements PropertyMetadataFactoryI
 
         foreach (array_merge(Reflection::ACCESSOR_PREFIXES, Reflection::MUTATOR_PREFIXES) as $prefix) {
             $methodName = $prefix.ucfirst($property);
-            if (!$reflectionClass->hasMethod($methodName)) {
+            if (!$reflectionClass->hasMethod($methodName) && !$reflectionEnum?->hasMethod($methodName)) {
                 continue;
             }
 
-            $reflectionMethod = $reflectionClass->getMethod($methodName);
+            $reflectionMethod = $reflectionClass->hasMethod($methodName) ? $reflectionClass->getMethod($methodName) : $reflectionEnum?->getMethod($methodName);
             if (!$reflectionMethod->isPublic()) {
                 continue;
             }
 
             if ($attributes = $reflectionMethod->getAttributes(ApiProperty::class)) {
                 return $this->createMetadata($attributes[0]->newInstance(), $parentPropertyMetadata);
+            }
+        }
+
+        $attributes = $reflectionClass->getAttributes(ApiProperty::class);
+        foreach ($attributes as $attribute) {
+            $instance = $attribute->newInstance();
+            if ($instance->getProperty() === $property) {
+                return $this->createMetadata($instance, $parentPropertyMetadata);
             }
         }
 
@@ -107,7 +111,7 @@ final class AttributePropertyMetadataFactory implements PropertyMetadataFactoryI
             return $parentPropertyMetadata;
         }
 
-        throw new PropertyNotFoundException(sprintf('Property "%s" of class "%s" not found.', $property, $resourceClass));
+        throw new PropertyNotFoundException(\sprintf('Property "%s" of class "%s" not found.', $property, $resourceClass));
     }
 
     private function createMetadata(ApiProperty $attribute, ?ApiProperty $propertyMetadata = null): ApiProperty

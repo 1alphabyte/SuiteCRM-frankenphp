@@ -29,8 +29,10 @@ namespace App\Data\DataProvider;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\Data\Entity\Record;
 use App\Data\Entity\RecordList;
 use App\Data\LegacyHandler\RecordListHandler;
+use App\Data\Service\Record\ApiRecordMappers\ApiRecordMapperRunner;
 
 /**
  * Class RecordListStateProvider
@@ -38,18 +40,20 @@ use App\Data\LegacyHandler\RecordListHandler;
  */
 class RecordListStateProvider implements ProviderInterface
 {
-    /**
-     * @var RecordListHandler
-     */
-    protected $recordListHandler;
+    protected RecordListHandler $recordListHandler;
+    protected ApiRecordMapperRunner $apiRecordMapperRunner;
 
     /**
      * RecordListStateProvider constructor.
      * @param RecordListHandler $recordListHandler
+     * @param ApiRecordMapperRunner $apiRecordMapperRunner
      */
-    public function __construct(RecordListHandler $recordListHandler)
-    {
+    public function __construct(
+        RecordListHandler $recordListHandler,
+        ApiRecordMapperRunner $apiRecordMapperRunner
+    ) {
         $this->recordListHandler = $recordListHandler;
+        $this->apiRecordMapperRunner = $apiRecordMapperRunner;
     }
 
     /**
@@ -60,6 +64,19 @@ class RecordListStateProvider implements ProviderInterface
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?RecordList
     {
-        return $this->recordListHandler->getList($uriVariables['id'] ?? '');
+        $list = $this->recordListHandler->getList($uriVariables['id'] ?? '');
+
+        $mappedRecords = [];
+        foreach ($list->getRecords() as $recordArray) {
+            $record = new Record();
+            $record->fromArray($recordArray);
+
+            $this->apiRecordMapperRunner->toExternal($record, 'list');
+            $mappedRecords[] = $record->toArray();
+        }
+
+        $list->setRecords($mappedRecords);
+        return $list;
+
     }
 }

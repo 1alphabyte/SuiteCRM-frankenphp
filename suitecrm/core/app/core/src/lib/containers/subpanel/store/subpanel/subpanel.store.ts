@@ -24,27 +24,19 @@
  * the words "Supercharged by SuiteCRM".
  */
 
-import {Injectable} from '@angular/core';
+import {Injectable, signal, WritableSignal} from '@angular/core';
 import {StateStore} from '../../../../store/state';
 import {RecordList, RecordListStore} from '../../../../store/record-list/record-list.store';
 import {BehaviorSubject, forkJoin, Observable, Subscription} from 'rxjs';
 import {RecordListStoreFactory} from '../../../../store/record-list/record-list.store.factory';
 import {LanguageStore} from '../../../../store/language/language.store';
-import {
-    ColumnDefinition,
-    deepClone,
-    Record,
-    RecordListMeta,
-    SearchCriteria,
-    SearchCriteriaFilter,
-    SearchMeta,
-    Statistic,
-    StatisticsMap,
-    StatisticsQuery,
-    StatisticsQueryMap,
-    StatisticWidgetOptions,
-    SubPanelDefinition
-} from 'common';
+import {deepClone} from '../../../../common/utils/object-utils';
+import {Record} from '../../../../common/record/record.model';
+import {SearchCriteria, SearchCriteriaFilter} from '../../../../common/views/list/search-criteria.model';
+import {ColumnDefinition, SearchMeta, RecordListMeta} from '../../../../common/metadata/list.metadata.model';
+import {Statistic, StatisticsQuery, StatisticsQueryMap} from '../../../../common/statistics/statistics.model';
+import {StatisticWidgetOptions} from '../../../../common/metadata/widget.metadata';
+import {SubPanelDefinition} from '../../../../common/metadata/subpanel.metadata.model';
 import {SingleValueStatisticsStore} from '../../../../store/single-value-statistics/single-value-statistics.store';
 import {
     SingleValueStatisticsStoreFactory
@@ -55,6 +47,7 @@ import {map, take, tap} from "rxjs/operators";
 import {MetadataStore} from "../../../../store/metadata/metadata.store.service";
 import {SavedFilter, SavedFilterMap} from "../../../../store/saved-filters/saved-filter.model";
 import {UserPreferenceStore} from "../../../../store/user-preference/user-preference.store";
+import {PanelCollapseMode} from "../../../../components/panel/panel.component";
 
 export interface SubpanelStoreMap {
     [key: string]: SubpanelStore;
@@ -79,11 +72,12 @@ export class SubpanelStore implements StateStore {
     columns$: Observable<ColumnDefinition[]>;
     metadata: SubPanelDefinition;
     loading$: Observable<boolean>;
+    panelCollapseMode: WritableSignal<PanelCollapseMode> = signal('closable');
 
     // Filter variables
     filterList: FilterListStore;
     criteria$: Observable<SearchCriteria>;
-    showFilter = false;
+    showFilter: WritableSignal<boolean> = signal(false);
     filterApplied = false;
 
     preferenceKey = null;
@@ -138,7 +132,7 @@ export class SubpanelStore implements StateStore {
 
     searchFilter() {
         this.filterApplied = true;
-        this.showFilter = false;
+        this.showFilter.set(false);
     }
 
     /**
@@ -245,7 +239,7 @@ export class SubpanelStore implements StateStore {
     public clearFilter(): void {
         this.resetFilters();
         this.filterApplied = false;
-        this.showFilter = false;
+        this.showFilter.set(false);
     }
 
     /**
@@ -325,7 +319,7 @@ export class SubpanelStore implements StateStore {
      */
     public shouldBatchStatistic(): boolean {
         const metadata: SubPanelDefinition = this.metadata || {} as SubPanelDefinition;
-        return !(metadata.insightWidget && metadata.insightWidget.batch && metadata.insightWidget.batch === false);
+        return !(metadata.subpanelWidget && metadata.subpanelWidget.batch && metadata.subpanelWidget.batch === false);
     }
 
     /**
@@ -417,11 +411,11 @@ export class SubpanelStore implements StateStore {
     public getWidgetLayout(): StatisticWidgetOptions {
 
         const meta = this.metadata;
-        if (!meta || !meta.insightWidget || !meta.insightWidget.options || !meta.insightWidget.options.insightWidget) {
+        if (!meta || !meta.subpanelWidget || !meta.subpanelWidget.options || !meta.subpanelWidget.options.subpanelWidget) {
             return {rows: []} as StatisticWidgetOptions;
         }
 
-        const layout = deepClone(meta.insightWidget.options.insightWidget);
+        const layout = deepClone(meta.subpanelWidget.options.subpanelWidget);
 
         if (!layout.rows || !layout.rows.length) {
             layout.rows = {};
@@ -431,7 +425,8 @@ export class SubpanelStore implements StateStore {
     }
 
     public toggleFilter(): boolean {
-        return this.showFilter = !this.showFilter;
+        this.showFilter.set(!this.showFilter());
+        return this.showFilter();
     }
 
     /**

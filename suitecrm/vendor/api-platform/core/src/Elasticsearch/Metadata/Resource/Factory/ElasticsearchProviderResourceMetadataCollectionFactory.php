@@ -17,18 +17,21 @@ use ApiPlatform\Elasticsearch\State\CollectionProvider;
 use ApiPlatform\Elasticsearch\State\ItemProvider;
 use ApiPlatform\Elasticsearch\State\Options;
 use ApiPlatform\Metadata\CollectionOperationInterface;
+use ApiPlatform\Metadata\InflectorInterface;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
-use ApiPlatform\Metadata\Util\Inflector;
 use Elasticsearch\Client;
 use Elasticsearch\Common\Exceptions\Missing404Exception;
 use Elasticsearch\Common\Exceptions\NoNodesAvailableException;
 
 final class ElasticsearchProviderResourceMetadataCollectionFactory implements ResourceMetadataCollectionFactoryInterface
 {
-    public function __construct(private readonly ?Client $client, private readonly ResourceMetadataCollectionFactoryInterface $decorated, private readonly bool $triggerDeprecation = true) // @phpstan-ignore-line
+    public function __construct(private readonly ?Client $client, private readonly ResourceMetadataCollectionFactoryInterface $decorated, private readonly bool $triggerDeprecation = true, private readonly ?InflectorInterface $inflector = null) // @phpstan-ignore-line
     {
+        if ($client) {
+            trigger_deprecation('api-platform/core', '4.0', \sprintf('Using $client at "%s" is deprecated and the argument will be removed.', self::class));
+        }
     }
 
     /**
@@ -48,7 +51,7 @@ final class ElasticsearchProviderResourceMetadataCollectionFactory implements Re
                     }
 
                     if (null !== ($elasticsearch = $operation->getElasticsearch())) {
-                        trigger_deprecation('api-platform/core', '3.1', sprintf('The "elasticsearch" property is deprecated. Use a stateOptions: "%s" instead.', Options::class));
+                        trigger_deprecation('api-platform/core', '3.1', \sprintf('The "elasticsearch" property is deprecated. Use a stateOptions: "%s" instead.', Options::class));
                     }
 
                     $hasElasticsearch = true === $elasticsearch || $operation->getStateOptions() instanceof Options;
@@ -77,7 +80,7 @@ final class ElasticsearchProviderResourceMetadataCollectionFactory implements Re
                     }
 
                     if (null !== ($elasticsearch = $graphQlOperation->getElasticsearch())) {
-                        trigger_deprecation('api-platform/core', '3.1', sprintf('The "elasticsearch" property is deprecated. Use a stateOptions: "%s" instead.', Options::class));
+                        trigger_deprecation('api-platform/core', '3.1', \sprintf('The "elasticsearch" property is deprecated. Use a stateOptions: "%s" instead.', Options::class));
                     }
 
                     $hasElasticsearch = true === $elasticsearch || $graphQlOperation->getStateOptions() instanceof Options;
@@ -106,7 +109,7 @@ final class ElasticsearchProviderResourceMetadataCollectionFactory implements Re
     private function hasIndices(Operation $operation): bool
     {
         $shortName = $operation->getShortName();
-        $index = Inflector::tableize($shortName);
+        $index = $this->inflector->tableize($shortName);
 
         try {
             $this->client->cat()->indices(['index' => $index]); // @phpstan-ignore-line

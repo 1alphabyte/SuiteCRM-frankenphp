@@ -29,6 +29,8 @@ namespace App\Data\LegacyHandler;
 
 use ApiBeanMapper;
 use App\Data\Entity\Record;
+use App\Data\Service\Record\EntityRecordMappers\EntityRecordMapperRunner;
+use App\Data\Service\Record\RecordSaveHandlers\RecordSaveHandlerRunnerInterface;
 use App\Data\Service\RecordProviderInterface;
 use App\Engine\LegacyHandler\LegacyHandler;
 use App\Engine\LegacyHandler\LegacyScopeState;
@@ -37,7 +39,6 @@ use App\Module\Service\FavoriteProviderInterface;
 use App\Module\Service\ModuleNameMapperInterface;
 use BeanFactory;
 use InvalidArgumentException;
-use RelateToFieldMapper;
 use SugarBean;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -53,17 +54,20 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
     /**
      * @var ModuleNameMapperInterface
      */
-    private $moduleNameMapper;
+    protected $moduleNameMapper;
 
     /**
      * @var AclManagerInterface
      */
-    private $acl;
+    protected $acl;
 
     /**
      * @var FavoriteProviderInterface
      */
-    private $favorites;
+    protected $favorites;
+
+    protected EntityRecordMapperRunner $entityRecordMapperRunner;
+    protected RecordSaveHandlerRunnerInterface $saveHandlerRunner;
 
     /**
      * RecordViewHandler constructor.
@@ -76,6 +80,8 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
      * @param RequestStack $session
      * @param AclManagerInterface $aclHandler
      * @param FavoriteProviderInterface $favorites
+     * @param EntityRecordMapperRunner $entityRecordMapperRunner
+     * @param RecordSaveHandlerRunnerInterface $saveHandlerRunner
      */
     public function __construct(
         string $projectDir,
@@ -86,7 +92,9 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
         ModuleNameMapperInterface $moduleNameMapper,
         RequestStack $session,
         AclManagerInterface $aclHandler,
-        FavoriteProviderInterface $favorites
+        FavoriteProviderInterface $favorites,
+        EntityRecordMapperRunner $entityRecordMapperRunner,
+        RecordSaveHandlerRunnerInterface $saveHandlerRunner
     ) {
         parent::__construct(
             $projectDir,
@@ -99,6 +107,8 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
         $this->moduleNameMapper = $moduleNameMapper;
         $this->acl = $aclHandler;
         $this->favorites = $favorites;
+        $this->entityRecordMapperRunner = $entityRecordMapperRunner;
+        $this->saveHandlerRunner = $saveHandlerRunner;
     }
 
     /**
@@ -121,7 +131,7 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
 
         $bean = $this->retrieveRecord($module, $id);
 
-        $record = $this->buildRecord($id, $module, $bean);
+        $record = $this->buildRecord($id, $module, $bean, 'retrieve');
 
         $this->close();
 
@@ -195,9 +205,10 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
      * @param string $id
      * @param string $module
      * @param SugarBean $bean
+     * @param string|null $mode
      * @return Record
      */
-    public function buildRecord(string $id, string $module, SugarBean $bean): Record
+    public function buildRecord(string $id, string $module, SugarBean $bean, ?string $mode = ''): Record
     {
         $record = new Record();
         /* @noinspection PhpIncludeInspection */
@@ -218,6 +229,8 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
         $record->setAttributes($mappedBean);
         $record->setAcls($this->acl->getRecordAcls($bean));
         $record->setFavorite($this->favorites->isFavorite($module, $id));
+
+        $this->entityRecordMapperRunner->toExternal($record, $mode);
 
         return $record;
     }
@@ -244,14 +257,25 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
             throw new AccessDeniedHttpException();
         }
 
+        $previousVersion = null;
+        if (!empty($bean->id) && empty($bean->new_with_id)) {
+            $previousVersion = $this->buildRecord($bean->id, $record->getModule(), $bean, 'retrieve');
+        }
+
+        $this->entityRecordMapperRunner->toInternal($record, 'save');
+        $this->saveHandlerRunner->run($previousVersion, $record, null, 'before-save');
+
         $this->setFields($bean, $record->getAttributes());
         $this->setUpdatedFields($bean, $record->getAttributes());
+
         $this->save($bean);
 
 
         $refreshedBean = $this->retrieveRecord($record->getModule(), $bean->id);
 
-        $savedRecord = $this->buildRecord($bean->id, $record->getModule(), $refreshedBean);
+        $savedRecord = $this->buildRecord($bean->id, $record->getModule(), $refreshedBean, 'save');
+
+        $this->saveHandlerRunner->run($previousVersion, $record, $savedRecord, 'after-save');
 
         $this->close();
 
@@ -263,7 +287,7 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
      * @param SugarBean $bean
      * @param array $values
      */
-    public function setFields(SugarBean $bean, array $values)
+    public function setFields(SugarBean $bean, array $values): void
     {
         if ($this->isToNotifyOnSave($bean, $values)) {
             $bean->notify_on_save = true;
@@ -310,8 +334,9 @@ class RecordHandler extends LegacyHandler implements RecordProviderInterface
             return;
         }
 
-        foreach ($attributes as $key => $attribute){
+        foreach ($attributes as $key => $attribute) {
             $bean->updated_fields[] = $key;
         }
     }
+
 }

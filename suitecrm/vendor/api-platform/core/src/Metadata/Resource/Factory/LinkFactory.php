@@ -38,7 +38,7 @@ final class LinkFactory implements LinkFactoryInterface, PropertyLinkFactoryInte
         $metadata = $this->propertyMetadataFactory->create($resourceClass = $operation->getClass(), $property);
         $relationClass = $this->getPropertyClassType($metadata->getBuiltinTypes());
         if (!$relationClass) {
-            throw new RuntimeException(sprintf('We could not find a class matching the uriVariable "%s" on "%s".', $property, $resourceClass));
+            throw new RuntimeException(\sprintf('We could not find a class matching the uriVariable "%s" on "%s".', $property, $resourceClass));
         }
 
         $identifiers = $this->resourceClassResolver->isResourceClass($relationClass) ? $this->getIdentifiersFromResourceClass($relationClass) : ['id'];
@@ -59,6 +59,9 @@ final class LinkFactory implements LinkFactoryInterface, PropertyLinkFactoryInte
 
         $link = (new Link())->withFromClass($resourceClass)->withIdentifiers($identifiers);
         $parameterName = $identifiers[0];
+        if ('value' === $parameterName && enum_exists($resourceClass)) {
+            $parameterName = 'id';
+        }
 
         if (1 < \count($identifiers)) {
             $parameterName = 'id';
@@ -153,6 +156,10 @@ final class LinkFactory implements LinkFactoryInterface, PropertyLinkFactoryInte
 
         if ($hasIdProperty && !$identifiers) {
             return ['id'];
+        }
+
+        if (!$hasIdProperty && !$identifiers && enum_exists($resourceClass)) {
+            return ['value'];
         }
 
         return $identifiers;

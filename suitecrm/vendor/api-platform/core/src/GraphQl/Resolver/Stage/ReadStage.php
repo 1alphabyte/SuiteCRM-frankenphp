@@ -27,6 +27,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Read stage of GraphQL resolvers.
  *
  * @author Alan Poulain <contact@alanpoulain.eu>
+ *
+ * @deprecated
  */
 final class ReadStage implements ReadStageInterface
 {
@@ -54,11 +56,11 @@ final class ReadStage implements ReadStageInterface
 
             if ($identifier && ($context['is_mutation'] || $context['is_subscription'])) {
                 if (null === $item) {
-                    throw new NotFoundHttpException(sprintf('Item "%s" not found.', $args['input']['id']));
+                    throw new NotFoundHttpException(\sprintf('Item "%s" not found.', $args['input']['id']));
                 }
 
                 if ($resourceClass !== $this->getObjectClass($item)) {
-                    throw new \UnexpectedValueException(sprintf('Item "%s" did not match expected type "%s".', $args['input']['id'], $operation->getShortName()));
+                    throw new \UnexpectedValueException(\sprintf('Item "%s" did not match expected type "%s".', $args['input']['id'], $operation->getShortName()));
                 }
             }
 

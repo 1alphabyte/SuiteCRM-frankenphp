@@ -13,9 +13,11 @@ declare(strict_types=1);
 
 namespace ApiPlatform\Doctrine\Orm\Extension;
 
+use ApiPlatform\Doctrine\Common\ParameterValueExtractorTrait;
 use ApiPlatform\Doctrine\Orm\Filter\FilterInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\ParameterNotFound;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Container\ContainerInterface;
 
@@ -26,6 +28,8 @@ use Psr\Container\ContainerInterface;
  */
 final class ParameterExtension implements QueryCollectionExtensionInterface, QueryItemExtensionInterface
 {
+    use ParameterValueExtractorTrait;
+
     public function __construct(private readonly ContainerInterface $filterLocator)
     {
     }
@@ -35,19 +39,19 @@ final class ParameterExtension implements QueryCollectionExtensionInterface, Que
      */
     private function applyFilter(QueryBuilder $queryBuilder, QueryNameGeneratorInterface $queryNameGenerator, string $resourceClass, ?Operation $operation = null, array $context = []): void
     {
-        foreach ($operation->getParameters() ?? [] as $parameter) {
-            $values = $parameter->getExtraProperties()['_api_values'] ?? [];
-            if (!$values) {
+        foreach ($operation?->getParameters() ?? [] as $parameter) {
+            if (null === ($v = $parameter->getValue()) || $v instanceof ParameterNotFound) {
                 continue;
             }
 
+            $values = $this->extractParameterValue($parameter, $v);
             if (null === ($filterId = $parameter->getFilter())) {
                 continue;
             }
 
             $filter = $this->filterLocator->has($filterId) ? $this->filterLocator->get($filterId) : null;
             if ($filter instanceof FilterInterface) {
-                $filter->apply($queryBuilder, $queryNameGenerator, $resourceClass, $operation, ['filters' => $values] + $context);
+                $filter->apply($queryBuilder, $queryNameGenerator, $resourceClass, $operation, ['filters' => $values, 'parameter' => $parameter] + $context);
             }
         }
     }

@@ -27,7 +27,10 @@
 import {Injectable} from '@angular/core';
 import {BaseActionManager} from '../../services/actions/base-action-manager.service';
 import {FieldLogicActionData, FieldLogicActionHandlerMap} from './field-logic.action';
-import {Action, ActionContext, Field, ModeActions, Record, ViewMode} from 'common';
+import {Action, ActionContext, ModeActions} from '../../common/actions/action.model';
+import {Field} from '../../common/record/field.model';
+import {Record} from '../../common/record/record.model';
+import {ViewMode} from '../../common/views/view.model';
 import {FieldLogicDisplayTypeAction} from './display-type/field-logic-display-type.action';
 import {EmailPrimarySelectAction} from './email-primary-select/email-primary-select.action';
 import {RequiredAction} from './required/required.action';
@@ -81,15 +84,16 @@ export class FieldLogicManager extends BaseActionManager<FieldLogicActionData> {
      * @param {object} mode
      * @param {object} record
      * @param triggeringStatus
+     * @param dependentField
      */
-    runLogic(field: Field, mode: ViewMode, record: Record, triggeringStatus: string = ''): void {
+    runLogic(field: Field, mode: ViewMode, record: Record, triggeringStatus: string = '', dependentField: Field = {} as Field): void {
         if (!field.logic) {
             return;
         }
 
         const actions = Object.keys(field.logic).map(key => field.logic[key]);
 
-        const modeActions = this.parseModeActions(actions, mode, triggeringStatus);
+        const modeActions = this.parseModeActions(actions, mode, triggeringStatus, dependentField);
         const context = {
             record,
             field,
@@ -144,7 +148,7 @@ export class FieldLogicManager extends BaseActionManager<FieldLogicActionData> {
      * @param mode
      * @param triggeringStatus
      */
-    protected parseModeActions(declaredActions: Action[], mode: ViewMode, triggeringStatus: string) {
+    protected parseModeActions(declaredActions: Action[], mode: ViewMode, triggeringStatus: string, fieldDependent: Field) {
         if (!declaredActions) {
             return [];
         }
@@ -174,14 +178,31 @@ export class FieldLogicManager extends BaseActionManager<FieldLogicActionData> {
         }
 
         const actions = [];
-        const defaultTriggeringStatus = ['onValueChange'];
+        const defaultTriggeringStatus = ['onDependencyChange'];
 
         availableActions[mode].forEach(action => {
 
-            const frontendActionTriggeringStatus = this?.actions[mode][action.key]?.getTriggeringStatus() ?? null;
-            const actionTriggeringStatus = action?.triggeringStatus ?? frontendActionTriggeringStatus ?? defaultTriggeringStatus;
+            const dependentFieldsKeys = Object.keys(action?.params?.activeOnFields ?? {});
 
-            if(triggeringStatus && !actionTriggeringStatus.includes(triggeringStatus)) {
+            const frontendActionTriggeringStatus = this?.actions[mode][action.key]?.getTriggeringStatus() ?? null;
+
+            let actionTriggeringStatus = action?.triggeringStatus ?? frontendActionTriggeringStatus ?? defaultTriggeringStatus;
+
+            if (actionTriggeringStatus.includes('onValueChange')) {
+                actionTriggeringStatus = actionTriggeringStatus.filter(value => value !== 'onValueChange');
+                actionTriggeringStatus = ['onAnyLogic', ...actionTriggeringStatus];
+            }
+
+            if (actionTriggeringStatus.includes('onAnyLogic') && triggeringStatus !== 'onFieldInitialize') {
+                actions.push(action);
+                return;
+            }
+
+            if (triggeringStatus && !actionTriggeringStatus.includes(triggeringStatus)) {
+                return;
+            }
+
+            if (actionTriggeringStatus.includes('onDependencyChange') && !dependentFieldsKeys?.includes(fieldDependent.name)) {
                 return;
             }
 

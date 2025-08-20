@@ -49,6 +49,7 @@ final class Post extends HttpOperation
         ?array $exceptionToStatus = null,
         ?bool $queryParameterValidationEnabled = null,
         ?array $links = null,
+        ?array $errors = null,
 
         ?string $shortName = null,
         ?string $class = null,
@@ -96,7 +97,7 @@ final class Post extends HttpOperation
         ?OptionsInterface $stateOptions = null,
         array|Parameters|null $parameters = null,
         array $extraProperties = [],
-        private ?string $itemUriTemplate = null
+        private ?string $itemUriTemplate = null,
     ) {
         parent::__construct(
             method: 'POST',
@@ -128,6 +129,7 @@ final class Post extends HttpOperation
             exceptionToStatus: $exceptionToStatus,
             queryParameterValidationEnabled: $queryParameterValidationEnabled,
             links: $links,
+            errors: $errors,
             shortName: $shortName,
             class: $class,
             paginationEnabled: $paginationEnabled,

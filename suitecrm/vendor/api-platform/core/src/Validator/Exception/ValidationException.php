@@ -75,12 +75,12 @@ class ValidationException extends RuntimeException implements ConstraintViolatio
 
         if ($message instanceof ConstraintViolationListInterface) {
             $this->constraintViolationList = $message;
-            parent::__construct($code ?? $this->__toString(), $previous ?? 0, $errorTitle instanceof \Throwable ? $errorTitle : null);
+            parent::__construct($this->__toString(), $code ?? 0, $previous);
 
             return;
         }
 
-        trigger_deprecation('api_platform/core', '3.3', sprintf('The "%s" exception will have a "%s" first argument in 4.x.', self::class, ConstraintViolationListInterface::class));
+        trigger_deprecation('api_platform/core', '3.3', \sprintf('The "%s" exception will have a "%s" first argument in 4.x.', self::class, ConstraintViolationListInterface::class));
         parent::__construct($message ?: $this->__toString(), $code ?? 0, $previous);
     }
 
@@ -108,16 +108,8 @@ class ValidationException extends RuntimeException implements ConstraintViolatio
         return $id;
     }
 
-    #[SerializedName('hydra:title')]
     #[Groups(['jsonld'])]
-    public function getHydraTitle(): string
-    {
-        return $this->errorTitle ?? 'An error occurred';
-    }
-
-    #[Groups(['jsonld'])]
-    #[SerializedName('hydra:description')]
-    public function getHydraDescription(): string
+    public function getDescription(): string
     {
         return $this->detail;
     }

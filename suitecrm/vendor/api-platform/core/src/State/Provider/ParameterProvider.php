@@ -13,16 +13,13 @@ declare(strict_types=1);
 
 namespace ApiPlatform\State\Provider;
 
-use ApiPlatform\Metadata\HeaderParameterInterface;
 use ApiPlatform\Metadata\Operation;
-use ApiPlatform\Metadata\Parameter;
-use ApiPlatform\Metadata\Parameters;
 use ApiPlatform\State\Exception\ProviderNotFoundException;
-use ApiPlatform\State\ParameterProviderInterface;
+use ApiPlatform\State\ParameterNotFound;
 use ApiPlatform\State\ProviderInterface;
+use ApiPlatform\State\Util\ParameterParserTrait;
 use ApiPlatform\State\Util\RequestParser;
 use Psr\Container\ContainerInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Loops over parameters to:
@@ -33,6 +30,8 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class ParameterProvider implements ProviderInterface
 {
+    use ParameterParserTrait;
+
     public function __construct(private readonly ?ProviderInterface $decorated = null, private readonly ?ContainerInterface $locator = null)
     {
     }
@@ -49,66 +48,59 @@ final class ParameterProvider implements ProviderInterface
             $request->attributes->set('_api_header_parameters', $request->headers->all());
         }
 
-        $context = ['operation' => $operation] + $context;
-        $parameters = $operation->getParameters() ?? [];
-        $operationParameters = $parameters instanceof Parameters ? iterator_to_array($parameters) : $parameters;
-        foreach ($operationParameters as $parameter) {
-            $key = $parameter->getKey();
-            $parameters = $this->extractParameterValues($parameter, $request, $context);
-            $parsedKey = explode('[:property]', $key);
+        $parameters = $operation->getParameters();
+        foreach ($parameters ?? [] as $parameter) {
+            $extraProperties = $parameter->getExtraProperties();
+            unset($extraProperties['_api_values']);
+            $parameters->add($parameter->getKey(), $parameter = $parameter->withExtraProperties($extraProperties));
 
-            if (isset($parsedKey[0]) && isset($parameters[$parsedKey[0]])) {
-                $key = $parsedKey[0];
+            $context = ['operation' => $operation] + $context;
+            $values = $this->getParameterValues($parameter, $request, $context);
+            $value = $this->extractParameterValues($parameter, $values);
+
+            if (($default = $parameter->getSchema()['default'] ?? false) && ($value instanceof ParameterNotFound || !$value)) {
+                $value = $default;
             }
 
-            if (!isset($parameters[$key])) {
+            if ($value instanceof ParameterNotFound) {
                 continue;
             }
 
-            $operationParameters[$parameter->getKey()] = $parameter = $parameter->withExtraProperties(
-                $parameter->getExtraProperties() + ['_api_values' => [$key => $parameters[$key]]]
-            );
+            $parameters->add($parameter->getKey(), $parameter = $parameter->withExtraProperties(
+                $parameter->getExtraProperties() + ['_api_values' => $value]
+            ));
 
             if (null === ($provider = $parameter->getProvider())) {
                 continue;
             }
 
             if (\is_callable($provider)) {
-                if (($op = $provider($parameter, $parameters, $context)) instanceof Operation) {
+                if (($op = $provider($parameter, $values, $context)) instanceof Operation) {
                     $operation = $op;
                 }
 
                 continue;
             }
 
-            if (!\is_string($provider) || !$this->locator->has($provider)) {
-                throw new ProviderNotFoundException(sprintf('Provider "%s" not found on operation "%s"', $provider, $operation->getName()));
+            if (\is_string($provider)) {
+                if (!$this->locator->has($provider)) {
+                    throw new ProviderNotFoundException(\sprintf('Provider "%s" not found on operation "%s"', $provider, $operation->getName()));
+                }
+
+                $provider = $this->locator->get($provider);
             }
 
-            /** @var ParameterProviderInterface $providerInstance */
-            $providerInstance = $this->locator->get($provider);
-            if (($op = $providerInstance->provide($parameter, $parameters, $context)) instanceof Operation) {
+            if (($op = $provider->provide($parameter, $values, $context)) instanceof Operation) {
                 $operation = $op;
             }
         }
 
-        $operation = $operation->withParameters(new Parameters($operationParameters));
+        if ($parameters) {
+            $operation = $operation->withParameters($parameters);
+        }
         $request?->attributes->set('_api_operation', $operation);
         $context['operation'] = $operation;
 
         return $this->decorated?->provide($operation, $uriVariables, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    private function extractParameterValues(Parameter $parameter, ?Request $request, array $context)
-    {
-        if ($request) {
-            return $parameter instanceof HeaderParameterInterface ? $request->attributes->get('_api_header_parameters') : $request->attributes->get('_api_query_parameters');
-        }
-
-        // GraphQl
-        return $context['args'] ?? [];
     }
 }
